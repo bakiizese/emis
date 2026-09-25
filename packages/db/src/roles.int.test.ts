@@ -85,6 +85,28 @@ describe('database roles', () => {
     });
   });
 
+  it.each(['institution', 'number_counters'])(
+    '%s rows can be updated but never deleted by the app role',
+    async (table) => {
+      await withClient(urls.appUrl, async (c) => {
+        await expect(c.query(`DELETE FROM ${table}`)).rejects.toThrow(/permission denied/);
+        await expect(c.query(`TRUNCATE ${table}`)).rejects.toThrow(/permission denied/);
+      });
+    },
+  );
+
+  it('ships exactly one institution row', async () => {
+    const { rows } = await withClient(urls.appUrl, (c) =>
+      c.query<{ count: number }>('SELECT count(*)::int AS count FROM institution'),
+    );
+    expect(rows[0]?.count).toBe(1);
+    await withClient(urls.appUrl, async (c) => {
+      await expect(
+        c.query("INSERT INTO institution (name, short_name) VALUES ('Second', 'S')"),
+      ).rejects.toThrow(/institution_singleton_key/);
+    });
+  });
+
   it('login roles get privileges only through the writer/reader groups', async () => {
     const { rows } = await withClient(urls.adminUrl.replace(/\/postgres$/, '/emis_test'), (c) =>
       c.query<{ grantee: string }>(

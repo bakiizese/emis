@@ -20,6 +20,7 @@ import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, ilike, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 
+import { isUniqueViolation } from '../../../common/db/errors.js';
 import type { Actor } from '../../../common/request/request-context.js';
 import { APP_CONFIG } from '../../../config/config.module.js';
 import type { Env } from '../../../config/env.js';
@@ -40,12 +41,6 @@ import { RolesService } from './roles.service.js';
 
 export const INVITATION_TTL_HOURS = 72;
 const ADMIN_ROLE = 'admin';
-
-function isUniqueViolation(error: unknown): boolean {
-  const code = (e: unknown) =>
-    typeof e === 'object' && e !== null && 'code' in e ? e.code : undefined;
-  return code(error) === '23505' || code((error as { cause?: unknown }).cause) === '23505';
-}
 
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
@@ -334,25 +329,24 @@ export class UsersService {
   /** Staff users with their roles and MFA state, keyed by id. */
   private async load(ids: string[]): Promise<Map<string, StaffUser>> {
     if (ids.length === 0) return new Map();
-    const [accounts, assignments] = await Promise.all([
-      this.db
-        .select({ account: userAccounts, factorConfirmedAt: userTotpFactors.confirmedAt })
-        .from(userAccounts)
-        .leftJoin(userTotpFactors, eq(userTotpFactors.userId, userAccounts.id))
-        .where(inArray(userAccounts.id, ids)),
-      this.db
-        .select({
-          id: userRoleAssignments.id,
-          userId: userRoleAssignments.userId,
-          roleKey: roles.key,
-          roleName: roles.name,
-          scopeType: userRoleAssignments.scopeType,
-          scopeId: userRoleAssignments.scopeId,
-        })
-        .from(userRoleAssignments)
-        .innerJoin(roles, eq(roles.id, userRoleAssignments.roleId))
-        .where(inArray(userRoleAssignments.userId, ids)),
-    ]);
+    // Sequential on purpose: inside a transaction both queries share one connection.
+    const accounts = await this.db
+      .select({ account: userAccounts, factorConfirmedAt: userTotpFactors.confirmedAt })
+      .from(userAccounts)
+      .leftJoin(userTotpFactors, eq(userTotpFactors.userId, userAccounts.id))
+      .where(inArray(userAccounts.id, ids));
+    const assignments = await this.db
+      .select({
+        id: userRoleAssignments.id,
+        userId: userRoleAssignments.userId,
+        roleKey: roles.key,
+        roleName: roles.name,
+        scopeType: userRoleAssignments.scopeType,
+        scopeId: userRoleAssignments.scopeId,
+      })
+      .from(userRoleAssignments)
+      .innerJoin(roles, eq(roles.id, userRoleAssignments.roleId))
+      .where(inArray(userRoleAssignments.userId, ids));
 
     const rolesByUser = new Map<string, RoleAssignment[]>();
     for (const a of assignments) {

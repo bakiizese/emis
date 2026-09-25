@@ -23,3 +23,11 @@ export const problemDetailsSchema = z.object({
 
 export type ProblemFieldError = z.infer<typeof problemFieldErrorSchema>;
 export type ProblemDetails = z.infer<typeof problemDetailsSchema>;
+
+/** Codes any endpoint may return. */
+export const COMMON_ERROR_CODES = {
+  /** The record changed since it was read (If-Match didn't match its version). Reload and retry. */
+  versionConflict: 'VERSION_CONFLICT',
+  /** Updates to versioned records need an `If-Match: "<version>"` header. */
+  versionRequired: 'VERSION_REQUIRED',
+} as const;

@@ -13,7 +13,9 @@ import {
 } from '@tanstack/react-query';
 import { useDeferredValue, useState } from 'react';
 
+import { useScopeLabel } from '@/features/institution/use-org-units';
 import { apiRequest, errorMessage } from '@/lib/api';
+
 import { useSession } from '../session/use-session';
 import { InviteForm } from './invite-form';
 
@@ -27,6 +29,7 @@ function formatDate(iso: string | null): string {
 
 export function UsersScreen() {
   const { me, can } = useSession();
+  const scopeLabel = useScopeLabel(can('settings.read'));
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const q = useDeferredValue(search.trim());
@@ -135,8 +138,9 @@ export function UsersScreen() {
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1.5">
                     {user.roles.map((r) => (
-                      <Badge key={r.id} tone="info">
+                      <Badge key={r.id} tone="info" title={scopeLabel(r.scope)}>
                         {r.roleName}
+                        {r.scope.type === 'global' ? null : ` · ${scopeLabel(r.scope)}`}
                       </Badge>
                     ))}
                   </div>
