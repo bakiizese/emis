@@ -1,0 +1,5 @@
+@import 'tailwindcss';
+@import '@emis/ui/styles/theme.css';
+
+/* Scan the shared component package for class names. */
+@source '../../../../packages/ui/src';
