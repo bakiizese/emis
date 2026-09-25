@@ -6,6 +6,7 @@ import { CohortsModule } from '../cohorts/index.js';
 import { SettingsModule } from '../settings/index.js';
 import { StudentsModule } from '../students/index.js';
 import { ApprovalsService } from './application/approvals.service.js';
+import { FeeRemindersService } from './application/fee-reminders.service.js';
 import { FeesService } from './application/fees.service.js';
 import { InvoicesService } from './application/invoices.service.js';
 import { PAYMENT_PROVIDERS, PaymentsService } from './application/payments.service.js';
@@ -36,7 +37,8 @@ import { FeeStructuresController, PaymentPlansController } from './interface/fee
     InvoicesService,
     PaymentsService,
     ApprovalsService,
+    FeeRemindersService,
   ],
-  exports: [FeesService, InvoicesService, PaymentsService, ApprovalsService],
+  exports: [FeesService, InvoicesService, PaymentsService, ApprovalsService, FeeRemindersService],
 })
 export class BillingModule {}

@@ -78,6 +78,8 @@ export const institutionSchema = z.object({
   timezone: z.string(),
   calendarDisplay: z.enum(CALENDAR_DISPLAYS),
   fiscalYearStart: z.string(),
+  /** Certificates are only issued to students with nothing left to pay. */
+  certificateRequiresPaidInFull: z.boolean(),
   setupCompleted: z.boolean(),
   version: z.number().int(),
 });
@@ -113,6 +115,7 @@ const institutionFields = {
   timezone: timeZoneSchema,
   calendarDisplay: z.enum(CALENDAR_DISPLAYS),
   fiscalYearStart: monthDaySchema,
+  certificateRequiresPaidInFull: z.boolean(),
 };
 
 export const updateInstitutionRequestSchema = z.object(institutionFields).partial();
@@ -457,6 +460,7 @@ export const completeSetupRequestSchema = z.object({
     website: institutionFields.website.default(null),
     address: institutionFields.address.default(null),
     city: institutionFields.city.default(null),
+    certificateRequiresPaidInFull: institutionFields.certificateRequiresPaidInFull.default(false),
   }),
   branches: z.array(createBranchRequestSchema).min(1).max(50),
   /** Department packs to start from, e.g. ["language", "computer"]. */

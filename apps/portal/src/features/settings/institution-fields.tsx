@@ -1,6 +1,7 @@
 'use client';
 
 import { type Institution, updateInstitutionRequestSchema } from '@emis/contracts';
+import { CheckboxField } from '@emis/ui/components/checkbox';
 import { Field } from '@emis/ui/components/field';
 import { Label } from '@emis/ui/components/label';
 import { SelectField } from '@emis/ui/components/select';
@@ -29,6 +30,7 @@ export const INSTITUTION_DEFAULTS: InstitutionFormInput = {
   timezone: 'Africa/Addis_Ababa',
   calendarDisplay: 'gregorian',
   fiscalYearStart: '07-08',
+  certificateRequiresPaidInFull: false,
 };
 
 /** Form values from a stored institution (nulls become empty inputs). */
@@ -49,6 +51,7 @@ export function institutionToForm(institution: Institution): InstitutionFormInpu
     timezone: institution.timezone,
     calendarDisplay: institution.calendarDisplay,
     fiscalYearStart: institution.fiscalYearStart,
+    certificateRequiresPaidInFull: institution.certificateRequiresPaidInFull,
   };
 }
 
@@ -168,6 +171,16 @@ export function InstitutionFields({ form }: { form: InstitutionForm }) {
           error={errors.fiscalYearStart?.message}
           {...register('fiscalYearStart')}
         />
+      </Section>
+
+      <Section title="Certificates">
+        <div className="sm:col-span-2">
+          <CheckboxField
+            label="Only issue a certificate once the fees are paid in full"
+            description="A student with a balance still owed can't be given one until it is cleared."
+            {...register('certificateRequiresPaidInFull')}
+          />
+        </div>
       </Section>
     </div>
   );

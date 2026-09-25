@@ -41,6 +41,7 @@ import { invoiceLabel, invoiceTone } from '@/features/billing/invoices-screen';
 import { useStudentInvoices } from '@/features/billing/use-billing';
 import { invoiceSchema } from '@emis/contracts';
 import { useIdempotencyKey } from '@/lib/idempotency';
+import { CertificatesCard, IdCardCard } from './documents-cards';
 import { Badge } from '@emis/ui/components/badge';
 import { useSession } from '@/features/session/use-session';
 import { ApiError, apiRequest, errorMessage } from '@/lib/api';
@@ -441,7 +442,7 @@ function ClassesCard({ studentId }: { studentId: string }) {
 }
 
 export function StudentDetailScreen({ studentId }: { studentId: string }) {
-  const { term } = useInstitution();
+  const { term, moduleOn } = useInstitution();
   const { can } = useSession();
   const branches = useBranches();
   const student = useQuery({
@@ -477,6 +478,10 @@ export function StudentDetailScreen({ studentId }: { studentId: string }) {
         onSaved={setNotice}
       />
       {can('enrollments.read') ? <ClassesCard studentId={data.id} /> : null}
+      {can('students.read') && moduleOn('student_ids') ? <IdCardCard studentId={data.id} /> : null}
+      {can('certificates.read') && moduleOn('certificates') ? (
+        <CertificatesCard studentId={data.id} />
+      ) : null}
       {can('billing.read') ? (
         <BillingCard studentId={data.id} canInvoice={can('billing.invoice')} />
       ) : null}

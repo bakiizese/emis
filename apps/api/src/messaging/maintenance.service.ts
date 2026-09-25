@@ -11,6 +11,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  Optional,
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
@@ -21,7 +22,7 @@ import { ClsService } from 'nestjs-cls';
 import { APP_CONFIG } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
 import type { DbAdapter } from '../database/database.module.js';
-import { QUEUES } from './events.js';
+import { QUEUES, SCHEDULED_JOBS, type ScheduledJob } from './events.js';
 import { queueConnection } from './queue-connection.js';
 
 const HOUR = 3_600_000;
@@ -42,6 +43,7 @@ export class MaintenanceJobs implements OnApplicationBootstrap, OnApplicationShu
     @Inject(APP_CONFIG) private readonly env: Env,
     private readonly txHost: TransactionHost<DbAdapter>,
     private readonly cls: ClsService,
+    @Optional() @Inject(SCHEDULED_JOBS) private readonly contributed: ScheduledJob[] = [],
   ) {}
 
   readonly jobs: Record<string, { every: number; run: () => Promise<number> }> = {
@@ -97,10 +99,18 @@ export class MaintenanceJobs implements OnApplicationBootstrap, OnApplicationShu
     },
   };
 
+  /** Built-in housekeeping plus the jobs other modules contribute. */
+  private get allJobs(): Record<string, { every: number; run: () => Promise<number> }> {
+    return {
+      ...this.jobs,
+      ...Object.fromEntries(this.contributed.map((job) => [job.name, job])),
+    };
+  }
+
   async onApplicationBootstrap(): Promise<void> {
     const connection = queueConnection(this.env);
     this.queue = new Queue(QUEUES.maintenance, { connection });
-    for (const [name, job] of Object.entries(this.jobs)) {
+    for (const [name, job] of Object.entries(this.allJobs)) {
       await this.queue.upsertJobScheduler(
         name,
         { every: job.every },
@@ -119,10 +129,10 @@ export class MaintenanceJobs implements OnApplicationBootstrap, OnApplicationShu
   }
 
   async run(name: string): Promise<number> {
-    const job = this.jobs[name];
+    const job = this.allJobs[name];
     if (!job) throw new Error(`unknown maintenance job ${name}`);
     const removed = await this.cls.run(() => this.txHost.withTransaction(job.run));
-    if (removed > 0) this.logger.log(`${name}: removed ${removed}`);
+    if (removed > 0) this.logger.log(`${name}: ${removed}`);
     return removed;
   }
 }

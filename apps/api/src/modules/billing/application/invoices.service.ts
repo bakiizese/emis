@@ -179,6 +179,16 @@ export class InvoicesService {
     return invoice;
   }
 
+  /** What is still owed on an enrollment's invoice, or null if it has none. Void invoices owe nothing. */
+  async balanceForEnrollment(enrollmentId: string): Promise<number | null> {
+    const [row] = await this.db
+      .select({ status: invoices.status, total: invoices.total, paidTotal: invoices.paidTotal })
+      .from(invoices)
+      .where(eq(invoices.enrollmentId, enrollmentId));
+    if (!row) return null;
+    return row.status === 'void' ? 0 : row.total - row.paidTotal;
+  }
+
   /** The same view for other services in this module, after they've done their own checks. */
   async view(id: string): Promise<Invoice> {
     const [invoice] = await this.present([await this.row(id)]);

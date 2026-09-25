@@ -30,6 +30,7 @@ export function toInstitution(row: InstitutionRow): Institution {
     timezone: row.timezone,
     calendarDisplay: row.calendarDisplay,
     fiscalYearStart: row.fiscalYearStart,
+    certificateRequiresPaidInFull: row.certificateRequiresPaidInFull,
     setupCompleted: row.setupCompletedAt !== null,
     version: row.version,
   };
@@ -54,8 +55,13 @@ export class InstitutionService {
 
   /** Today's date ("YYYY-MM-DD") on the institution's own clock, which is what "overdue" is judged by. */
   async today(): Promise<string> {
+    return this.localDate(new Date());
+  }
+
+  /** The calendar date ("YYYY-MM-DD") an instant falls on at the institution. */
+  async localDate(at: Date): Promise<string> {
     const { timezone } = await this.row();
-    const { year, month, day } = calendarParts(new Date(), timezone);
+    const { year, month, day } = calendarParts(at, timezone);
     return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
 

@@ -26,3 +26,16 @@ export const QUEUES = {
   events: 'domain-events',
   maintenance: 'maintenance',
 } as const;
+
+/** Injection token for extra scheduled jobs that other modules contribute to the worker. */
+export const SCHEDULED_JOBS = Symbol('SCHEDULED_JOBS');
+
+/**
+ * A job the worker runs on a fixed interval. Fixed scheduler ids mean several workers never
+ * duplicate it, but it should still be safe to run twice. Returns how many things it did.
+ */
+export interface ScheduledJob {
+  name: string;
+  every: number;
+  run(): Promise<number>;
+}

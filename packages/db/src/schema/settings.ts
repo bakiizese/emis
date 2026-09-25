@@ -44,6 +44,10 @@ export const institution = pgTable(
       .default('gregorian'),
     /** MM-DD; Ethiopia's fiscal year starts on Hamle 1 (8 July). */
     fiscalYearStart: text('fiscal_year_start').notNull().default('07-08'),
+    /** Policy: no certificate while a balance is owed. */
+    certificateRequiresPaidInFull: boolean('certificate_requires_paid_in_full')
+      .notNull()
+      .default(false),
     setupCompletedAt: tstz('setup_completed_at'),
   },
   (t) => [
