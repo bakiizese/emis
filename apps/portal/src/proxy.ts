@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? '__Host-emis_session';
-const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password'];
+const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/accept-invite'];
 
 /**
  * Cheap first gate: no session cookie → go sign in. The API still validates every request;

@@ -1,7 +1,8 @@
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 
-import { bootstrapDatabase } from '../bootstrap.js';
+import { bootstrapDatabase, parseConnectionUrl } from '../bootstrap.js';
 import { runMigrations } from '../migrate.js';
+import { syncSystemRoles } from '../reference/system-roles.js';
 
 export interface TestDatabaseUrls {
   adminUrl: string;
@@ -54,6 +55,40 @@ export async function startTestDatabase(): Promise<TestDatabase> {
 
   await bootstrapDatabase({ adminUrl: urls.adminUrl, database: DATABASE, ...roles });
   await runMigrations(urls.migratorUrl);
+  await syncSystemRoles(urls.migratorUrl);
 
   return { urls, stop: async () => void (await container.stop()) };
+}
+
+/**
+ * A separate database inside the shared test container, set up like production. Use it when a
+ * test file needs global state to itself (e.g. "is this the last admin?") while other files run
+ * in parallel.
+ */
+export async function createIsolatedDatabase(
+  base: TestDatabaseUrls,
+  name: string,
+): Promise<TestDatabaseUrls> {
+  const inDatabase = (url: string) => {
+    const parsed = new URL(url);
+    parsed.pathname = `/${name}`;
+    return parsed.toString();
+  };
+  const urls: TestDatabaseUrls = {
+    adminUrl: inDatabase(base.adminUrl),
+    migratorUrl: inDatabase(base.migratorUrl),
+    appUrl: inDatabase(base.appUrl),
+    readonlyUrl: inDatabase(base.readonlyUrl),
+  };
+
+  await bootstrapDatabase({
+    adminUrl: base.adminUrl,
+    database: name,
+    migrator: parseConnectionUrl(base.migratorUrl),
+    app: parseConnectionUrl(base.appUrl),
+    readonly: parseConnectionUrl(base.readonlyUrl),
+  });
+  await runMigrations(urls.migratorUrl);
+  await syncSystemRoles(urls.migratorUrl);
+  return urls;
 }

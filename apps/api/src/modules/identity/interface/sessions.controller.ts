@@ -10,6 +10,8 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import { SelfService } from '../../../common/authz/decorators.js';
+
 import { ApiZodResponse } from '../../../common/zod/openapi.js';
 import { SecurityEventsService } from '../application/security-events.service.js';
 import { SessionsService } from '../application/sessions.service.js';
@@ -17,6 +19,7 @@ import type { AuthContext, RequestContext } from '../domain/types.js';
 import { CurrentAuth, ReqContext } from './decorators.js';
 
 @ApiTags('auth')
+@SelfService()
 @Controller('auth/sessions')
 export class SessionsController {
   constructor(

@@ -12,9 +12,11 @@ import {
 } from '@emis/contracts';
 import { Body, Controller, Delete, HttpCode, Post, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+
 import { Throttle } from '@nestjs/throttler';
 import type { FastifyReply } from 'fastify';
 
+import { SelfService } from '../../../common/authz/decorators.js';
 import { ApiZodBody, ApiZodResponse } from '../../../common/zod/openapi.js';
 import { ZodValidationPipe } from '../../../common/zod/zod-validation.js';
 import { MfaService } from '../application/mfa.service.js';
@@ -25,6 +27,7 @@ import { SessionCookie } from './session-cookie.js';
 const PER_MINUTE = 60_000;
 
 @ApiTags('auth')
+@SelfService()
 @Controller('auth/mfa')
 export class MfaController {
   constructor(
