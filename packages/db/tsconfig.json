@@ -1,0 +1,9 @@
+{
+  "extends": "@emis/config/tsconfig/library.json",
+  "compilerOptions": {
+    "rootDir": "${configDir}",
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["src", "*.config.ts"]
+}

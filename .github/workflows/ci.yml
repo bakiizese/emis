@@ -49,8 +49,12 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Test
+      - name: Unit tests
         run: pnpm test
+
+      # Real PostgreSQL 18 via Testcontainers (Docker is available on GitHub runners).
+      - name: Integration tests
+        run: pnpm test:integration
 
       - name: Build
         run: pnpm build
