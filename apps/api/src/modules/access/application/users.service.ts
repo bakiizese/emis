@@ -21,6 +21,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, ilike, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 
 import { isUniqueViolation } from '../../../common/db/errors.js';
+import { escapeLike } from '../../../common/db/like.js';
 import type { Actor } from '../../../common/request/request-context.js';
 import { APP_CONFIG } from '../../../config/config.module.js';
 import type { Env } from '../../../config/env.js';
@@ -41,10 +42,6 @@ import { RolesService } from './roles.service.js';
 
 export const INVITATION_TTL_HOURS = 72;
 const ADMIN_ROLE = 'admin';
-
-function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
-}
 
 @Injectable()
 export class UsersService {

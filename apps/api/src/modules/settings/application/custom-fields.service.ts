@@ -1,19 +1,22 @@
-import type {
-  CreateCustomFieldRequest,
-  CustomFieldDefinition,
-  CustomFieldEntity,
-  CustomFieldType,
-  UpdateCustomFieldRequest,
+import {
+  type CreateCustomFieldRequest,
+  type CustomFieldDefinition,
+  type CustomFieldEntity,
+  type CustomFieldType,
+  customFieldValuesSchema,
+  type UpdateCustomFieldRequest,
 } from '@emis/contracts';
 import { customFieldDefinitions, updateWithVersion } from '@emis/db';
 import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { asc, eq } from 'drizzle-orm';
+import { z } from 'zod';
 
 import { isUniqueViolation } from '../../../common/db/errors.js';
 import { versionedRow } from '../../../common/http/versioning.js';
 import type { Actor } from '../../../common/request/request-context.js';
 import type { DbAdapter } from '../../../database/database.module.js';
+import { ZodValidationException } from '../../../common/zod/zod-validation.js';
 import { AuditService, diffChanges } from '../../audit/index.js';
 import { settingsErrors } from '../domain/errors.js';
 
@@ -51,6 +54,23 @@ export class CustomFieldsService {
       .where(eq(customFieldDefinitions.entityType, entityType))
       .orderBy(asc(customFieldDefinitions.sortOrder), asc(customFieldDefinitions.label));
     return rows.map(toDefinition);
+  }
+
+  /**
+   * Check the custom values entered on a record against the institution's active fields for that
+   * kind of record (required fields present, right types, choices from the list). Returns the
+   * cleaned values; unknown or hidden fields are dropped. Failures are field errors under
+   * `customFields.<key>`, like any other invalid input.
+   */
+  async validateValues(
+    entityType: CustomFieldEntity,
+    values: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const definitions = await this.list(entityType);
+    const schema = z.object({ customFields: customFieldValuesSchema(definitions) });
+    const result = schema.safeParse({ customFields: values });
+    if (!result.success) throw new ZodValidationException(result.error);
+    return result.data.customFields;
   }
 
   @Transactional()

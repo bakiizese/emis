@@ -125,6 +125,45 @@ const ENDPOINTS: {
   { permission: 'facilities.manage', method: 'PATCH', url: `/shifts/${MISSING_ID}`, payload: {} },
   { permission: 'facilities.manage', method: 'POST', url: '/rooms', payload: {} },
   { permission: 'facilities.manage', method: 'PATCH', url: `/rooms/${MISSING_ID}`, payload: {} },
+  { permission: 'students.read', method: 'GET', url: '/students' },
+  { permission: 'students.read', method: 'GET', url: '/students/duplicates' },
+  { permission: 'students.read', method: 'GET', url: `/students/${MISSING_ID}` },
+  { permission: 'students.manage', method: 'POST', url: '/students', payload: {} },
+  { permission: 'students.manage', method: 'PATCH', url: `/students/${MISSING_ID}`, payload: {} },
+  {
+    permission: 'students.manage',
+    method: 'PUT',
+    url: `/students/${MISSING_ID}/guardians`,
+    payload: { guardians: [] },
+  },
+  { permission: 'admissions.read', method: 'GET', url: '/applications' },
+  { permission: 'admissions.read', method: 'GET', url: `/applications/${MISSING_ID}` },
+  { permission: 'admissions.read', method: 'GET', url: `/applications/${MISSING_ID}/duplicates` },
+  { permission: 'admissions.manage', method: 'POST', url: '/applications', payload: {} },
+  {
+    permission: 'admissions.manage',
+    method: 'PATCH',
+    url: `/applications/${MISSING_ID}`,
+    payload: {},
+  },
+  {
+    permission: 'admissions.manage',
+    method: 'POST',
+    url: `/applications/${MISSING_ID}/transition`,
+    payload: { to: 'contacted' },
+  },
+  {
+    permission: 'admissions.manage',
+    method: 'POST',
+    url: `/applications/${MISSING_ID}/convert`,
+    payload: {},
+  },
+  {
+    permission: 'placement.record',
+    method: 'POST',
+    url: `/applications/${MISSING_ID}/placement`,
+    payload: {},
+  },
 ];
 
 let app: NestFastifyApplication;

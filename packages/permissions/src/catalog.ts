@@ -14,6 +14,11 @@ export const PERMISSIONS = {
   'catalog.manage': 'Create and edit programs, courses, prerequisites and completion rules',
   'calendar.manage': 'Manage academic years, intakes and holidays',
   'facilities.manage': 'Manage shifts and rooms',
+  'students.read': 'See student records, guardians and contact details',
+  'students.manage': 'Register students and edit their records and guardians',
+  'admissions.read': 'See applications and where they are in the admissions pipeline',
+  'admissions.manage': 'Register applicants, edit applications and move them through the pipeline',
+  'placement.record': 'Record placement results and recommend a starting level',
 } as const satisfies Record<string, string>;
 
 export type Permission = keyof typeof PERMISSIONS;
