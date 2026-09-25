@@ -69,6 +69,29 @@ describe('database roles', () => {
     });
   });
 
+  it('security events are append-only for the app role', async () => {
+    await withClient(urls.appUrl, async (c) => {
+      await c.query("INSERT INTO security_events (type) VALUES ('test.append_only')");
+      await expect(c.query("UPDATE security_events SET type = 'tampered'")).rejects.toThrow(
+        /permission denied/,
+      );
+      await expect(c.query('DELETE FROM security_events')).rejects.toThrow(/permission denied/);
+      await expect(c.query('TRUNCATE security_events')).rejects.toThrow(/permission denied/);
+    });
+  });
+
+  it('login roles get privileges only through the writer/reader groups', async () => {
+    const { rows } = await withClient(urls.adminUrl.replace(/\/postgres$/, '/emis_test'), (c) =>
+      c.query<{ grantee: string }>(
+        "SELECT DISTINCT grantee FROM information_schema.role_table_grants WHERE table_schema = 'public'",
+      ),
+    );
+    const grantees = rows.map((r) => r.grantee);
+    expect(grantees).toEqual(expect.arrayContaining(['emis_writer', 'emis_reader']));
+    expect(grantees).not.toContain('emis_app');
+    expect(grantees).not.toContain('emis_readonly');
+  });
+
   it('bootstrap is safe to re-run and rotates passwords', async () => {
     // Separate database and roles, so rotating a password never affects other test files.
     const database = 'emis_rotation_test';

@@ -1,3 +1,4 @@
+import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Logger } from 'nestjs-pino';
@@ -6,6 +7,7 @@ import { REQUEST_ID_HEADER, resolveRequestId } from './common/http/request-id.js
 import type { Env } from './config/env.js';
 import { API_PREFIX } from './constants.js';
 import { setupApiDocs } from './docs/api-docs.js';
+import { registerCsrfProtection } from './modules/identity/index.js';
 
 export function createFastifyAdapter(env: Env): FastifyAdapter {
   return new FastifyAdapter({
@@ -32,11 +34,14 @@ export async function configureApp(app: NestFastifyApplication, env: Env): Promi
     hsts: { maxAge: 31_536_000, includeSubDomains: true },
   });
 
+  await app.register(cookie);
+
   const fastify = app.getHttpAdapter().getInstance();
   fastify.addHook('onRequest', (request, reply, done) => {
     void reply.header(REQUEST_ID_HEADER, request.id);
     done();
   });
+  registerCsrfProtection(fastify, env.TRUSTED_ORIGINS);
 
   if (env.CORS_ORIGINS.length > 0) {
     app.enableCors({

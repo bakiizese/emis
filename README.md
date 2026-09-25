@@ -32,12 +32,25 @@ cp .env.example .env     # then set the passwords
 pnpm infra:up            # Postgres, Valkey, S3, Gotenberg, Mailpit
 pnpm db:bootstrap        # once: creates the database roles (safe to re-run)
 pnpm db:migrate          # applies migrations
+pnpm --filter @emis/api account:create-admin   # first admin (two-factor sign-in enforced)
 pnpm dev                 # api :4000 · web :3000 · portal :3001
 ```
+
+Set `ENCRYPTION_KEY` in `.env` first (`openssl rand -base64 32`). Then sign in at
+http://localhost:3001/login, where the admin is walked through authenticator-app setup.
 
 - API health: `curl http://localhost:4000/api/v1/health` (readiness: `/api/v1/health/ready`)
 - API reference: http://localhost:4000/api/docs
 - Outgoing email in dev: http://localhost:8025
+
+### Authentication
+
+- Server-side sessions in an HttpOnly `__Host-` cookie (only a SHA-256 of the token is stored), with idle and absolute timeouts
+- Argon2id passwords, checked against common and personal-info patterns (zxcvbn)
+- TOTP two-factor with replay protection and single-use recovery codes; secrets encrypted with AES-256-GCM
+- Generic errors and constant-time checks (no account enumeration), progressive lockout, per-IP rate limits
+- CSRF protection via Origin / Fetch-Metadata checks on every state-changing request
+- Append-only security event log (the app's database role can't update or delete it)
 
 ### Database roles
 
