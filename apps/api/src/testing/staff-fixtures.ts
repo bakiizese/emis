@@ -51,11 +51,12 @@ export function callAs(app: NestFastifyApplication, who: { cookie: string } | nu
     method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
     url: string,
     payload?: object,
+    headers: Record<string, string> = {},
   ): Promise<LightMyRequestResponse> =>
     app.inject({
       method,
       url: `/api/v1${url}`,
-      headers: who ? { cookie: who.cookie } : {},
+      headers: { ...(who ? { cookie: who.cookie } : {}), ...headers },
       ...(payload ? { payload } : {}),
     });
 }

@@ -9,14 +9,15 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { LightMyRequestResponse } from 'fastify';
 import { ClsService } from 'nestjs-cls';
+import { randomUUID } from 'node:crypto';
+
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 
 import { createIsolatedDatabase, type TestDatabaseUrls } from '@emis/db/testing';
 
 import type { DbAdapter } from '../../database/database.module.js';
-import type { CapturingMailer } from '../../testing/capturing-mailer.js';
-import { createTestAppWithMailer } from '../../testing/create-test-app.js';
+import { createTestAppWithMailer, type TestApp } from '../../testing/create-test-app.js';
 import {
   callAs,
   createStaff,
@@ -30,25 +31,25 @@ let urls: TestDatabaseUrls;
 const STRONG = 'marble-kettle-horizon-plume';
 
 let app: NestFastifyApplication;
-let mailer: CapturingMailer;
+let mail: TestApp['mail'];
 let admin: StaffFixture;
 let asAdmin: ReturnType<typeof callAs>;
 
 const code = (res: LightMyRequestResponse) => problemDetailsSchema.parse(res.json()).code;
 
-function tokenFromEmail(to: string): string {
-  const match = mailer.lastTo(to)?.text.match(/\/accept-invite#token=([\w-]+)/);
+async function tokenFromEmail(to: string): Promise<string> {
+  const match = (await mail.lastTo(to))?.text.match(/\/accept-invite#token=([\w-]+)/);
   if (!match?.[1]) throw new Error(`no invitation email for ${to}`);
   return match[1];
 }
 
 async function invite(email: string, roleKey = 'secretary', scope?: object) {
-  return asAdmin('POST', '/users/invitations', {
-    email,
-    displayName: 'New Person',
-    roleKey,
-    ...(scope ? { scope } : {}),
-  });
+  return asAdmin(
+    'POST',
+    '/users/invitations',
+    { email, displayName: 'New Person', roleKey, ...(scope ? { scope } : {}) },
+    { 'idempotency-key': randomUUID() },
+  );
 }
 
 async function login(email: string, password: string) {
@@ -57,7 +58,7 @@ async function login(email: string, password: string) {
 
 beforeAll(async () => {
   urls = await createIsolatedDatabase(inject('database'), 'emis_staff_test');
-  ({ app, mailer } = await createTestAppWithMailer({
+  ({ app, mail } = await createTestAppWithMailer({
     env: { DATABASE_URL: urls.appUrl, RATE_LIMIT_MAX: '10000' },
   }));
   admin = await createStaff(app, {
@@ -79,8 +80,8 @@ describe('inviting staff', () => {
       roles: [{ roleKey: 'secretary', scope: { type: 'global' } }],
     });
 
-    const token = tokenFromEmail('hana@lingua.test');
-    expect(mailer.lastTo('hana@lingua.test')?.text).toContain('Owner invited you');
+    const token = await tokenFromEmail('hana@lingua.test');
+    expect((await mail.lastTo('hana@lingua.test'))?.text).toContain('Owner invited you');
 
     const details = await app.inject({
       method: 'POST',
@@ -143,9 +144,9 @@ describe('inviting staff', () => {
 
   it('resends a fresh link and kills the old one', async () => {
     const invited = staffUserSchema.parse((await invite('resend@lingua.test')).json());
-    const first = tokenFromEmail('resend@lingua.test');
+    const first = await tokenFromEmail('resend@lingua.test');
     expect((await asAdmin('POST', `/users/${invited.id}/invitation`)).statusCode).toBe(202);
-    const second = tokenFromEmail('resend@lingua.test');
+    const second = await tokenFromEmail('resend@lingua.test');
     expect(second).not.toBe(first);
 
     const old = await app.inject({

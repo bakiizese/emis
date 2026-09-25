@@ -27,6 +27,7 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { RequirePermission } from '../../../common/authz/decorators.js';
+import { Idempotent } from '../../../common/idempotency/idempotent.decorator.js';
 import { ApiZodBody, ApiZodResponse } from '../../../common/zod/openapi.js';
 import { ZodValidationPipe } from '../../../common/zod/zod-validation.js';
 import { type AuthContext, CurrentAuth } from '../../identity/index.js';
@@ -64,6 +65,7 @@ export class UsersController {
 
   @Post('invitations')
   @RequirePermission('users.invite')
+  @Idempotent()
   @ApiOperation({
     summary: 'Invite a staff member: creates the account, grants the role, emails a link',
   })
@@ -79,6 +81,7 @@ export class UsersController {
 
   @Post(':id/invitation')
   @RequirePermission('users.manage')
+  @Idempotent({ required: false })
   @HttpCode(202)
   @ApiOperation({ summary: 'Send a fresh invitation link (the old one stops working)' })
   async resend(@Param('id', uuid) id: string, @CurrentAuth() auth: AuthContext): Promise<void> {

@@ -12,6 +12,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
 import { ApiError, apiRequest, errorMessage } from '@/lib/api';
+import { useIdempotencyKey } from '@/lib/idempotency';
 
 // The form only offers the institution-wide scope until branches and departments exist.
 const formSchema = inviteStaffRequestSchema.omit({ scope: true });
@@ -30,10 +31,17 @@ export function InviteForm({ onDone }: { onDone: (email: string) => void }) {
   });
   const { errors } = form.formState;
 
+  const idempotency = useIdempotencyKey();
   const invite = useMutation({
     mutationFn: (values: FormValues) =>
-      apiRequest('/users/invitations', { method: 'POST', body: values, schema: staffUserSchema }),
+      apiRequest('/users/invitations', {
+        method: 'POST',
+        body: values,
+        schema: staffUserSchema,
+        idempotencyKey: idempotency.keyFor(values),
+      }),
     onSuccess: async (user) => {
+      idempotency.reset();
       await queryClient.invalidateQueries({ queryKey: ['users'] });
       form.reset();
       onDone(user.email);

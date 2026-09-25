@@ -1,12 +1,12 @@
 import { passwordResetTokens, userAccounts } from '@emis/db';
 import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, gt, isNull } from 'drizzle-orm';
 
 import { APP_CONFIG } from '../../../config/config.module.js';
 import type { Env } from '../../../config/env.js';
 import type { DbAdapter } from '../../../database/database.module.js';
-import { MAILER, type Mailer, type OutgoingEmail } from '../../../mail/mailer.js';
+import { EmailOutbox } from '../../../mail/email-outbox.service.js';
 import { authErrors } from '../domain/errors.js';
 import { PasswordPolicy } from '../domain/password-policy.js';
 import { generateToken, hashToken } from '../domain/tokens.js';
@@ -21,8 +21,6 @@ export const RESET_TOKEN_TTL_MINUTES = 30;
 
 @Injectable()
 export class PasswordService {
-  private readonly logger = new Logger(PasswordService.name);
-
   constructor(
     private readonly txHost: TransactionHost<DbAdapter>,
     private readonly accounts: AccountsService,
@@ -30,7 +28,7 @@ export class PasswordService {
     private readonly hasher: PasswordHasher,
     private readonly policy: PasswordPolicy,
     private readonly events: SecurityEventsService,
-    @Inject(MAILER) private readonly mailer: Mailer,
+    private readonly emails: EmailOutbox,
     @Inject(APP_CONFIG) private readonly env: Env,
   ) {}
 
@@ -40,8 +38,9 @@ export class PasswordService {
 
   /**
    * Always succeeds from the caller's point of view, so it can't be used to discover accounts.
-   * Email goes out in the background so response time doesn't differ either.
+   * The email is queued in the same transaction and sent by the worker.
    */
+  @Transactional()
   async requestReset(email: string, context: RequestContext): Promise<void> {
     const account = await this.accounts.findByEmail(email);
     if (!account || account.status !== 'active') {
@@ -60,11 +59,12 @@ export class PasswordService {
 
     // Token in the fragment: never sent to a server, so it can't leak through logs or Referer.
     const url = `${this.env.PORTAL_URL}/reset-password#token=${token}`;
-    this.sendInBackground(
+    await this.emails.send(
       passwordResetEmail(account.email, this.env.APP_NAME, url, RESET_TOKEN_TTL_MINUTES),
     );
   }
 
+  @Transactional()
   async resetPassword(token: string, password: string, context: RequestContext): Promise<void> {
     const [row] = await this.db
       .select({
@@ -91,10 +91,11 @@ export class PasswordService {
     const passwordHash = await this.hasher.hash(password);
 
     await this.applyReset(row.tokenId, row.userId, passwordHash, context);
-    this.sendInBackground(passwordChangedEmail(row.email, this.env.APP_NAME));
+    await this.emails.send(passwordChangedEmail(row.email, this.env.APP_NAME));
   }
 
   /** Change while signed in: other sessions end, this one continues with a fresh token. */
+  @Transactional()
   async changePassword(
     auth: AuthContext,
     input: { currentPassword: string; newPassword: string },
@@ -109,7 +110,7 @@ export class PasswordService {
     const passwordHash = await this.hasher.hash(input.newPassword);
 
     const token = await this.applyChange(auth, passwordHash, context);
-    this.sendInBackground(passwordChangedEmail(account.email, this.env.APP_NAME));
+    await this.emails.send(passwordChangedEmail(account.email, this.env.APP_NAME));
     return token;
   }
 
@@ -180,13 +181,5 @@ export class PasswordService {
       metadata: { sessionsRevoked: revoked },
     });
     return token;
-  }
-
-  private sendInBackground(email: OutgoingEmail): void {
-    this.mailer.send(email).catch((error: unknown) => {
-      this.logger.warn(
-        `email "${email.subject}" not sent: ${error instanceof Error ? error.message : 'unknown error'}`,
-      );
-    });
   }
 }

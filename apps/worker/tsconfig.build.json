@@ -1,5 +1,0 @@
-{
-  "extends": "@emis/config/tsconfig/node.json",
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
-}

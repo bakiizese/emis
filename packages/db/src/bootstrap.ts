@@ -97,7 +97,7 @@ async function ensureGroupRole(client: pg.Client, name: string): Promise<void> {
   }
 }
 
-export async function bootstrapDatabase(options: BootstrapOptions): Promise<void> {
+async function bootstrapUnlocked(options: BootstrapOptions): Promise<void> {
   const log = options.log ?? (() => undefined);
   const { database, migrator, app, readonly } = options;
   const roles = [migrator.user, app.user, readonly.user];
@@ -205,5 +205,27 @@ export async function bootstrapDatabase(options: BootstrapOptions): Promise<void
     log('schema privileges: applied');
   } finally {
     await scoped.end();
+  }
+}
+
+/**
+ * Role and database DDL isn't safe to run concurrently: two bootstraps at once can fail with
+ * "tuple concurrently updated". A cluster-level advisory lock (taken in the admin database)
+ * makes parallel runs (two installers, parallel test files) queue up instead.
+ */
+export async function bootstrapDatabase(options: BootstrapOptions): Promise<void> {
+  const lock = new pg.Client({
+    connectionString: options.adminUrl,
+    application_name: 'emis-bootstrap-lock',
+  });
+  await lock.connect();
+  try {
+    await lock.query("SELECT pg_advisory_lock(hashtext('emis.bootstrap'))");
+    await bootstrapUnlocked(options);
+  } finally {
+    await lock
+      .query("SELECT pg_advisory_unlock(hashtext('emis.bootstrap'))")
+      .catch(() => undefined);
+    await lock.end();
   }
 }

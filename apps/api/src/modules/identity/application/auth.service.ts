@@ -1,13 +1,13 @@
 import type { LoginRequest, LoginResponse, MeResponse } from '@emis/contracts';
 import { userAccounts, userTotpFactors } from '@emis/db';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, isNotNull, sql } from 'drizzle-orm';
 
 import { APP_CONFIG } from '../../../config/config.module.js';
 import type { Env } from '../../../config/env.js';
 import type { DbAdapter } from '../../../database/database.module.js';
-import { MAILER, type Mailer } from '../../../mail/mailer.js';
+import { EmailOutbox } from '../../../mail/email-outbox.service.js';
 import { authErrors } from '../domain/errors.js';
 import { type AuthContext, nextStepFor, type RequestContext } from '../domain/types.js';
 import { PasswordHasher } from '../infrastructure/password-hasher.js';
@@ -22,15 +22,13 @@ const MAX_LOCKOUT_MINUTES = 60;
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
-
   constructor(
     private readonly txHost: TransactionHost<DbAdapter>,
     private readonly accounts: AccountsService,
     private readonly sessions: SessionsService,
     private readonly hasher: PasswordHasher,
     private readonly events: SecurityEventsService,
-    @Inject(MAILER) private readonly mailer: Mailer,
+    private readonly emails: EmailOutbox,
     @Inject(APP_CONFIG) private readonly env: Env,
   ) {}
 
@@ -65,7 +63,7 @@ export class AuthService {
           userId: account.id,
           metadata: { until: failure.lockedUntil.toISOString() },
         });
-        this.sendInBackground(
+        await this.emails.send(
           accountLockedEmail(account.email, this.env.APP_NAME, failure.lockedUntil),
         );
       }
@@ -147,13 +145,5 @@ export class AuthService {
       .where(eq(userAccounts.id, userId))
       .returning({ count: userAccounts.failedLoginCount, lockedUntil: userAccounts.lockedUntil });
     return { count: row?.count ?? 0, lockedUntil: row?.lockedUntil ?? null };
-  }
-
-  private sendInBackground(email: Parameters<Mailer['send']>[0]): void {
-    this.mailer.send(email).catch((error: unknown) => {
-      this.logger.warn(
-        `email "${email.subject}" not sent: ${error instanceof Error ? error.message : 'unknown error'}`,
-      );
-    });
   }
 }
