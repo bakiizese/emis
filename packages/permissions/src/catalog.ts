@@ -19,6 +19,12 @@ export const PERMISSIONS = {
   'admissions.read': 'See applications and where they are in the admissions pipeline',
   'admissions.manage': 'Register applicants, edit applications and move them through the pipeline',
   'placement.record': 'Record placement results and recommend a starting level',
+  'cohorts.read': 'See cohorts, their timetables and rosters',
+  'cohorts.manage':
+    'Create and schedule cohorts, assign rooms and instructors, open and close them',
+  'enrollments.read': 'See who is enrolled or waitlisted in which cohort',
+  'enrollments.manage': 'Enroll students, manage waitlists and record withdrawals',
+  'results.record': 'Record final results and decide completion',
 } as const satisfies Record<string, string>;
 
 export type Permission = keyof typeof PERMISSIONS;

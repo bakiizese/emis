@@ -164,6 +164,32 @@ const ENDPOINTS: {
     url: `/applications/${MISSING_ID}/placement`,
     payload: {},
   },
+  { permission: 'cohorts.read', method: 'GET', url: '/cohorts' },
+  { permission: 'cohorts.read', method: 'GET', url: '/cohorts/instructors' },
+  { permission: 'cohorts.read', method: 'GET', url: `/cohorts/${MISSING_ID}` },
+  { permission: 'cohorts.read', method: 'GET', url: `/cohorts/${MISSING_ID}/sessions` },
+  { permission: 'cohorts.manage', method: 'POST', url: '/cohorts', payload: {} },
+  { permission: 'cohorts.manage', method: 'PATCH', url: `/cohorts/${MISSING_ID}`, payload: {} },
+  {
+    permission: 'cohorts.manage',
+    method: 'POST',
+    url: `/cohorts/${MISSING_ID}/status`,
+    payload: { status: 'open' },
+  },
+  { permission: 'enrollments.read', method: 'GET', url: '/enrollments' },
+  { permission: 'enrollments.manage', method: 'POST', url: '/enrollments', payload: {} },
+  {
+    permission: 'enrollments.manage',
+    method: 'POST',
+    url: `/enrollments/${MISSING_ID}/withdraw`,
+    payload: {},
+  },
+  {
+    permission: 'results.record',
+    method: 'POST',
+    url: `/enrollments/${MISSING_ID}/result`,
+    payload: {},
+  },
 ];
 
 let app: NestFastifyApplication;

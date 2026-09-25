@@ -50,6 +50,13 @@
       "when": 1790357132536,
       "tag": "0006_students",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790359756131,
+      "tag": "0007_cohorts",
+      "breakpoints": true
     }
   ]
 }
