@@ -1,0 +1,4 @@
+# Default owner for everything. Add module owners as the team grows, e.g.:
+# /apps/api/        @backend-owner
+# /apps/portal/     @frontend-owner
+*       @bakiizese
