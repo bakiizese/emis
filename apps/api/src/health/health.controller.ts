@@ -5,10 +5,12 @@ import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
 import { SkipThrottle } from '@nestjs/throttler';
 
 import { ApiZodResponse } from '../common/zod/openapi.js';
+import { Public } from '../modules/identity/index.js';
 import { API_VERSION } from '../version.js';
 import { DatabaseHealthIndicator } from './database.health.js';
 
 @ApiTags('health')
+@Public()
 @SkipThrottle()
 @Controller('health')
 export class HealthController {

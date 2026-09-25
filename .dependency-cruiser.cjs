@@ -21,6 +21,27 @@ module.exports = {
       to: { path: '^apps/([^/]+)/', pathNot: '^apps/$1/' },
     },
     {
+      name: 'api-module-public-api-only',
+      severity: 'error',
+      comment:
+        'Outside an API module, import it only through its index.ts. Keeps modules replaceable and extractable.',
+      from: { path: '^apps/api/src/', pathNot: '^apps/api/src/modules/' },
+      to: {
+        path: '^apps/api/src/modules/[^/]+/',
+        pathNot: '^apps/api/src/modules/[^/]+/index[.]ts$',
+      },
+    },
+    {
+      name: 'api-modules-talk-through-index',
+      severity: 'error',
+      comment: "One module may not reach into another module's internals.",
+      from: { path: '^apps/api/src/modules/([^/]+)/' },
+      to: {
+        path: '^apps/api/src/modules/[^/]+/',
+        pathNot: ['^apps/api/src/modules/$1/', '^apps/api/src/modules/[^/]+/index[.]ts$'],
+      },
+    },
+    {
       name: 'packages-must-not-import-apps',
       severity: 'error',
       comment: 'Packages are reusable building blocks and must never depend on an app.',
@@ -51,7 +72,7 @@ module.exports = {
         path: '^(apps|packages)/[^/]+/src/',
         pathNot: ['[.](test|spec)[.]tsx?$', '/src/testing/'],
       },
-      to: { dependencyTypes: ['npm-dev'], dependencyTypesNot: ['type-only'] },
+      to: { dependencyTypes: ['npm-dev'], dependencyTypesNot: ['type-only', 'npm-peer'] },
     },
   ],
   options: {

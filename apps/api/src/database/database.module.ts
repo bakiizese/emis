@@ -1,3 +1,4 @@
+import type { TransactionalAdapterDrizzleOrm } from '@nestjs-cls/transactional-adapter-drizzle-orm';
 import { createDatabase, createPool, type Database } from '@emis/db';
 import { Global, Inject, Logger, Module, type OnApplicationShutdown } from '@nestjs/common';
 import type pg from 'pg';
@@ -10,6 +11,12 @@ export const PG_POOL = Symbol('PG_POOL');
 export const DRIZZLE = Symbol('DRIZZLE');
 
 export type { Database };
+
+/**
+ * Adapter type for `TransactionHost<DbAdapter>`. Inject the host with the class written out
+ * (`TransactionHost<DbAdapter>`), never through a type alias, or DI metadata is lost.
+ */
+export type DbAdapter = TransactionalAdapterDrizzleOrm<Database>;
 
 @Global()
 @Module({

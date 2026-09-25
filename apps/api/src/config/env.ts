@@ -2,6 +2,26 @@ import { z } from 'zod';
 
 const logLevels = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'] as const;
 
+/** A base64-encoded 256-bit key. Errors never include the value. */
+const base64Key = z
+  .string()
+  .trim()
+  .transform((value) => Buffer.from(value, 'base64'))
+  .refine((key) => key.length === 32, 'must be 32 bytes, base64-encoded (openssl rand -base64 32)');
+
+const commaSeparatedKeys = z
+  .string()
+  .default('')
+  .transform((value) =>
+    value
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean),
+  )
+  .pipe(z.array(base64Key));
+
+const httpUrl = z.url({ protocol: /^https?$/ });
+
 const commaSeparatedUrls = z
   .string()
   .default('')
@@ -30,6 +50,33 @@ export const envSchema = z
     CORS_ORIGINS: commaSeparatedUrls,
     BODY_LIMIT_BYTES: z.coerce.number().int().min(1024).default(1_048_576),
 
+    /** Name shown in authenticator apps and emails until the institution profile exists. */
+    APP_NAME: z.string().trim().min(1).max(60).default('EMIS'),
+    /** Public URLs of the frontends: used in email links and as trusted origins. */
+    PORTAL_URL: httpUrl.default('http://localhost:3001'),
+    WEB_URL: httpUrl.default('http://localhost:3000'),
+    /** Extra origins allowed to make state-changing requests (CSRF check). */
+    TRUSTED_ORIGINS: commaSeparatedUrls,
+
+    /** Encrypts secrets at rest (TOTP seeds…). Keep previous keys listed while rotating. */
+    ENCRYPTION_KEY: base64Key,
+    ENCRYPTION_KEYS_PREVIOUS: commaSeparatedKeys,
+
+    SESSION_COOKIE_NAME: z
+      .string()
+      .regex(/^[A-Za-z0-9_-]+$/)
+      .default('__Host-emis_session'),
+    SESSION_IDLE_MINUTES: z.coerce.number().int().min(5).max(1440).default(30),
+    SESSION_ABSOLUTE_HOURS: z.coerce.number().int().min(1).max(720).default(12),
+
+    SMTP_HOST: z.string().min(1).default('localhost'),
+    SMTP_PORT: z.coerce.number().int().min(1).max(65_535).default(1025),
+    /** true = implicit TLS (port 465). Otherwise STARTTLS is used when the server offers it. */
+    SMTP_SECURE: z.stringbool().default(false),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASSWORD: z.string().optional(),
+    MAIL_FROM: z.string().min(3).default('EMIS <no-reply@localhost>'),
+
     RATE_LIMIT_TTL_MS: z.coerce.number().int().min(1000).default(60_000),
     RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(120),
 
@@ -39,6 +86,13 @@ export const envSchema = z
   .transform((env) => ({
     ...env,
     API_DOCS_ENABLED: env.API_DOCS_ENABLED ?? env.NODE_ENV !== 'production',
+    TRUSTED_ORIGINS: [
+      ...new Set(
+        [env.PORTAL_URL, env.WEB_URL, ...env.CORS_ORIGINS, ...env.TRUSTED_ORIGINS].map(
+          (url) => new URL(url).origin,
+        ),
+      ),
+    ],
   }));
 
 export type Env = z.output<typeof envSchema>;

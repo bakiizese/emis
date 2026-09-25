@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { zodDto, ZodValidationPipe } from './common/zod/zod-validation.js';
+import { Public } from './modules/identity/index.js';
 import { createTestApp } from './testing/create-test-app.js';
 
 const probeSchema = z.object({
@@ -18,6 +19,7 @@ const probeSchema = z.object({
 });
 class ProbeDto extends zodDto(probeSchema) {}
 
+@Public()
 @Controller('probe')
 class ProbeController {
   @Post()
