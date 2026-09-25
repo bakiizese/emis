@@ -1,9 +1,9 @@
 import type { MyAccessResponse } from '@emis/contracts';
-import { rolePermissions, roles, userRoleAssignments } from '@emis/db';
+import { rolePermissions, roles, userAccounts, userRoleAssignments } from '@emis/db';
 import { type Grant, isPermission, type Permission, type Scope } from '@emis/permissions';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, asc, eq, isNotNull } from 'drizzle-orm';
 
 import type { DbAdapter } from '../../../database/database.module.js';
 
@@ -34,6 +34,23 @@ export class AccessService {
         ? [{ permission: row.permission, scope: toScope(row.scopeType, row.scopeId) }]
         : [],
     );
+  }
+
+  /** Active, signed-up staff who hold a role (at any scope), e.g. everyone who can be an instructor. */
+  async activeUsersWithRole(roleKey: string): Promise<{ id: string; displayName: string }[]> {
+    return this.txHost.tx
+      .selectDistinct({ id: userAccounts.id, displayName: userAccounts.displayName })
+      .from(userRoleAssignments)
+      .innerJoin(roles, eq(roles.id, userRoleAssignments.roleId))
+      .innerJoin(userAccounts, eq(userAccounts.id, userRoleAssignments.userId))
+      .where(
+        and(
+          eq(roles.key, roleKey),
+          eq(userAccounts.status, 'active'),
+          isNotNull(userAccounts.passwordHash),
+        ),
+      )
+      .orderBy(asc(userAccounts.displayName));
   }
 
   async myAccess(userId: string): Promise<MyAccessResponse> {

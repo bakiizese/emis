@@ -33,6 +33,10 @@ import {
 import { PersonFields, personToForm } from '@/features/people/person-fields';
 import { StudentStatusBadge, studentStatusLabel } from '@/features/people/status-badges';
 import { useDescriptorOptions } from '@/features/people/use-lists';
+import { formatDate } from '@/features/academics/use-catalog';
+import { cohortStatusLabel } from '@/features/cohorts/cohorts-screen';
+import { useStudentEnrollments } from '@/features/cohorts/use-cohorts';
+import { Badge } from '@emis/ui/components/badge';
 import { useSession } from '@/features/session/use-session';
 import { ApiError, apiRequest, errorMessage } from '@/lib/api';
 
@@ -304,6 +308,55 @@ function GuardiansCard({
   );
 }
 
+function ClassesCard({ studentId }: { studentId: string }) {
+  const { term } = useInstitution();
+  const enrollments = useStudentEnrollments(studentId, true);
+  const items = enrollments.data?.items ?? [];
+  const tone = {
+    active: 'success',
+    waitlisted: 'warning',
+    completed: 'info',
+    failed: 'danger',
+    withdrawn: 'neutral',
+  } as const;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{term('cohort', true)}</CardTitle>
+      </CardHeader>
+      {enrollments.error ? <Alert tone="error">{errorMessage(enrollments.error)}</Alert> : null}
+      {enrollments.data && items.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          Not enrolled in any {term('cohort').toLowerCase()} yet. Enroll them from a{' '}
+          {term('cohort').toLowerCase()}&apos;s page.
+        </p>
+      ) : null}
+      <ul className="divide-border divide-y">
+        {items.map((e) => (
+          <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+            <div>
+              <Link href={`/cohorts/${e.cohortId}`} className="font-medium hover:underline">
+                {e.cohortName}
+              </Link>
+              <div className="text-muted-foreground text-xs">
+                {e.completedAt
+                  ? `${e.score ?? '—'}% score · ${e.attendancePercent ?? '—'}% attendance · ${formatDate(e.completedAt.slice(0, 10))}`
+                  : e.waitlistPosition
+                    ? `Waitlist place ${e.waitlistPosition}`
+                    : e.enrolledAt
+                      ? `Since ${formatDate(e.enrolledAt.slice(0, 10))}`
+                      : ''}
+              </div>
+            </div>
+            <Badge tone={tone[e.status]}>{cohortStatusLabel(e.status)}</Badge>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 export function StudentDetailScreen({ studentId }: { studentId: string }) {
   const { term } = useInstitution();
   const { can } = useSession();
@@ -340,6 +393,7 @@ export function StudentDetailScreen({ studentId }: { studentId: string }) {
         canEdit={canEdit}
         onSaved={setNotice}
       />
+      {can('enrollments.read') ? <ClassesCard studentId={data.id} /> : null}
       <GuardiansCard
         key={`guardians-${data.version}`}
         student={data}

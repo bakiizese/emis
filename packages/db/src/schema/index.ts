@@ -1,6 +1,7 @@
 export * from './access.js';
 export * from './audit.js';
 export * from './catalog.js';
+export * from './cohorts.js';
 export * from './columns.js';
 export * from './identity.js';
 export * from './messaging.js';

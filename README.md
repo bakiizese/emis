@@ -85,6 +85,23 @@ Nothing about an institution is hard-coded. An admin configures it from the port
 - A Secretary is limited to their branch's students and applicants. Audit entries say what changed and
   by whom, never the person's details
 
+### Cohorts and enrollment
+
+- **Cohorts** are scheduled classes: a course in a shift and room, with an instructor and a date range.
+  Sessions are generated from the shift's days, skipping holidays, at the institution's clock time
+- **No double-booking, enforced by Postgres:** an EXCLUDE constraint refuses two sessions that overlap
+  in the same room or with the same instructor (back-to-back is fine). The API turns it into a clear
+  409, and a cohort that clashes leaves nothing behind
+- **Seats:** a cohort takes the smaller of its own limit and its room's seats. Enrolling locks the cohort
+  row, so 50 simultaneous requests for the last seat give it to exactly one and waitlist the other 49
+  (a test removes the lock to prove it would otherwise fail)
+- **Waitlist:** numbered, first come first served. When someone withdraws, the longest-waiting student
+  takes the seat in the same transaction, so a seat is never left empty while people wait
+- **Prerequisites** must be completed first; **results** are decided by the course's completion rules
+  (minimum score, minimum attendance), and a rule that needs a number that wasn't given is refused rather
+  than failed. Recording a result is limited to the course's department
+- Enrolling a student who came from an application finishes that application
+
 ### Authentication
 
 - Server-side sessions in an HttpOnly `__Host-` cookie (only a SHA-256 of the token is stored), with idle and absolute timeouts

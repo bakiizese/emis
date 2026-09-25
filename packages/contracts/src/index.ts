@@ -3,6 +3,7 @@ export * from './admissions.js';
 export * from './audit.js';
 export * from './auth.js';
 export * from './catalog.js';
+export * from './cohorts.js';
 export * from './custom-fields.js';
 export * from './health.js';
 export * from './numbering.js';

@@ -73,6 +73,16 @@ export class FacilitiesService {
     return rows.map(toShift);
   }
 
+  async findShift(id: string): Promise<Shift | null> {
+    const [row] = await this.db.select().from(shifts).where(eq(shifts.id, id));
+    return row ? toShift(row) : null;
+  }
+
+  async findRoom(id: string): Promise<Room | null> {
+    const [row] = await this.db.select().from(rooms).where(eq(rooms.id, id));
+    return row ? toRoom(row) : null;
+  }
+
   async shiftExists(id: string): Promise<boolean> {
     const [row] = await this.db.select({ id: shifts.id }).from(shifts).where(eq(shifts.id, id));
     return row !== undefined;

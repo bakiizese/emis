@@ -14,7 +14,7 @@ import { afterCursor, applications, decodeCursor, toPage, updateWithVersion } fr
 import type { Grant } from '@emis/permissions';
 import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
-import { and, desc, eq, ilike, inArray, notInArray, or, type SQL } from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, notInArray, or, type SQL, sql } from 'drizzle-orm';
 
 import { assertBranchAccess, assertScope, branchReach } from '../../../common/authz/scope.js';
 import { escapeLike, phonePattern, searchTokens } from '../../../common/db/like.js';
@@ -351,6 +351,27 @@ export class ApplicationsService {
       },
     });
     return toApplication(row);
+  }
+
+  /**
+   * A student who was registered from an application has now been placed in a class: the
+   * application is finished. Called by enrollment; applications that aren't `confirmed` are left alone.
+   */
+  @Transactional()
+  async markEnrolled(studentId: string): Promise<void> {
+    const rows = await this.db
+      .update(applications)
+      .set({ status: 'enrolled', version: sql`${applications.version} + 1` })
+      .where(and(eq(applications.studentId, studentId), eq(applications.status, 'confirmed')))
+      .returning({ id: applications.id, reference: applications.reference });
+    for (const row of rows) {
+      await this.audit.record({
+        action: 'application.status_changed',
+        entityType: 'application',
+        entityId: row.id,
+        changes: { reference: row.reference, status: { from: 'confirmed', to: 'enrolled' } },
+      });
+    }
   }
 
   /**
