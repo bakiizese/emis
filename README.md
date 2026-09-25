@@ -59,6 +59,17 @@ Nothing about an institution is hard-coded. An admin configures it from the port
 - Settings changes need `If-Match` with the version you read, so two admins can't silently overwrite
   each other (412 on conflict), and every change lands in the audit log
 
+### Academic catalog
+
+- **Programs and courses** under each department (e.g. English → A1, A2, B1…), with prerequisites
+  and completion rules (minimum attendance %, pass mark, whether it earns a certificate). Prerequisites
+  stay inside one program and can't form a loop, even when two people edit at the same moment
+- **Academic calendar:** academic years (the database refuses overlapping ranges), intake windows with
+  registration open/close times, and holidays that apply to every branch or just one
+- **Shifts** (days of the week + time window) and **rooms** with seats and features per branch
+- A Coordinator limited to one department can edit only that department's programs and courses;
+  everything else here is Admin-only. Every staff role can read the catalog
+
 ### Authentication
 
 - Server-side sessions in an HttpOnly `__Host-` cookie (only a SHA-256 of the token is stored), with idle and absolute timeouts

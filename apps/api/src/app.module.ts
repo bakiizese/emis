@@ -12,6 +12,7 @@ import { HealthModule } from './health/health.module.js';
 import { MailModule } from './mail/mail.module.js';
 import { AccessModule, PermissionGuard } from './modules/access/index.js';
 import { AuditModule } from './modules/audit/index.js';
+import { CatalogModule } from './modules/catalog/index.js';
 import { AuthGuard, IdentityModule } from './modules/identity/index.js';
 import { ModuleGuard, SettingsModule } from './modules/settings/index.js';
 
@@ -35,6 +36,7 @@ export class AppModule {
         IdentityModule,
         AuditModule,
         SettingsModule,
+        CatalogModule,
         AccessModule,
       ],
       providers: [

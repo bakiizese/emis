@@ -27,7 +27,7 @@ import { apiRequest, errorMessage } from '@/lib/api';
 import { useIdempotencyKey } from '@/lib/idempotency';
 
 import { SettingsHeader } from './settings-nav';
-import { SimpleTable } from './simple-table';
+import { SimpleTable } from '@/components/simple-table';
 
 const TYPE_LABELS: Record<z.infer<typeof customFieldTypeSchema>, string> = {
   text: 'Short text',

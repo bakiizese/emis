@@ -10,6 +10,10 @@ export const PERMISSIONS = {
   'audit.read': 'Read the audit log and verify its integrity',
   'settings.read': 'See institution settings: branches, departments, lists and terminology',
   'settings.manage': 'Change institution settings, modules, numbering and run the setup wizard',
+  'catalog.read': 'See programs, courses, the academic calendar, shifts and rooms',
+  'catalog.manage': 'Create and edit programs, courses, prerequisites and completion rules',
+  'calendar.manage': 'Manage academic years, intakes and holidays',
+  'facilities.manage': 'Manage shifts and rooms',
 } as const satisfies Record<string, string>;
 
 export type Permission = keyof typeof PERMISSIONS;
