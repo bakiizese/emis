@@ -1,0 +1,4 @@
+{
+  "extends": "@emis/config/tsconfig/react-library.json",
+  "include": ["src"]
+}
