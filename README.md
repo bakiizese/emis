@@ -102,6 +102,26 @@ Nothing about an institution is hard-coded. An admin configures it from the port
   than failed. Recording a result is limited to the course's department
 - Enrolling a student who came from an application finishes that application
 
+### Billing and payments
+
+- **Money is whole santim**, never a float, end to end (contracts, database `bigint`, portal input parsing).
+  Splitting a total across instalments always adds back to the exact total; that and every allocation rule are property-tested
+- **Fees** are set per course from a date and never edited once used; a category price (e.g. scholarship)
+  beats the general one, and the newest fee that had started when the class begins wins. **Payment plans** split an
+  invoice by shares (in basis points) and due-date offsets
+- **Invoices:** one per enrollment (a unique index, not a check), numbered from the configurable pattern, split into
+  instalments. Totals are always recomputed from the instalments, so an invoice can't disagree with its parts
+- **Payments** (cash, bank transfer, cheque) go through a **payment provider** interface; only the Manual provider exists,
+  and an online provider later plugs in without touching allocation or receipts. A payment takes the invoice's
+  row lock, pays the **oldest instalment first**, refuses an overpayment, and issues a **gapless receipt number** in
+  the same transaction: 20 clerks racing for one invoice get exactly the payments that fit, numbered with no holes
+- **Maker-checker approvals:** discounts and voiding a payment are requested by one person and only happen when a
+  different person approves. Enforced in the service _and_ by a database check (the decider can't be the requester) and a
+  trigger that freezes decided requests. A void reverses the money but keeps the receipt number used
+- **Recorded money can't be rewritten behind the API's back:** the app's database role can't delete or truncate
+  any money table, can't update allocations, and triggers refuse changes to an amount, number or line item
+- Receipts print from the portal; PDF receipts, ID cards and certificates come with the documents branch
+
 ### Authentication
 
 - Server-side sessions in an HttpOnly `__Host-` cookie (only a SHA-256 of the token is stored), with idle and absolute timeouts

@@ -25,6 +25,13 @@ export const PERMISSIONS = {
   'enrollments.read': 'See who is enrolled or waitlisted in which cohort',
   'enrollments.manage': 'Enroll students, manage waitlists and record withdrawals',
   'results.record': 'Record final results and decide completion',
+  'fees.read': 'See fee structures and payment plans',
+  'fees.manage': 'Create fee structures and payment plans',
+  'billing.read': 'See invoices, payments and receipts',
+  'billing.invoice': 'Create invoices for enrollments',
+  'billing.receive': 'Record payments and issue receipts',
+  'billing.request': 'Ask for a discount or for a payment to be voided (a second person approves)',
+  'approvals.decide': 'Approve or reject discount and void requests made by someone else',
 } as const satisfies Record<string, string>;
 
 export type Permission = keyof typeof PERMISSIONS;

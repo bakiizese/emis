@@ -190,6 +190,37 @@ const ENDPOINTS: {
     url: `/enrollments/${MISSING_ID}/result`,
     payload: {},
   },
+  { permission: 'fees.read', method: 'GET', url: '/fee-structures' },
+  { permission: 'fees.read', method: 'GET', url: '/payment-plans' },
+  { permission: 'fees.manage', method: 'POST', url: '/fee-structures', payload: {} },
+  { permission: 'fees.manage', method: 'PATCH', url: `/fee-structures/${MISSING_ID}`, payload: {} },
+  { permission: 'fees.manage', method: 'POST', url: '/payment-plans', payload: {} },
+  { permission: 'fees.manage', method: 'PATCH', url: `/payment-plans/${MISSING_ID}`, payload: {} },
+  { permission: 'billing.read', method: 'GET', url: '/invoices' },
+  { permission: 'billing.read', method: 'GET', url: `/invoices/${MISSING_ID}` },
+  { permission: 'billing.read', method: 'GET', url: '/payments' },
+  { permission: 'billing.read', method: 'GET', url: `/payments/${MISSING_ID}` },
+  { permission: 'billing.invoice', method: 'POST', url: '/invoices', payload: {} },
+  { permission: 'billing.receive', method: 'POST', url: '/payments', payload: {} },
+  { permission: 'billing.request', method: 'GET', url: '/approvals' },
+  {
+    permission: 'billing.request',
+    method: 'POST',
+    url: `/invoices/${MISSING_ID}/discount-requests`,
+    payload: {},
+  },
+  {
+    permission: 'billing.request',
+    method: 'POST',
+    url: `/payments/${MISSING_ID}/void-requests`,
+    payload: {},
+  },
+  {
+    permission: 'approvals.decide',
+    method: 'POST',
+    url: `/approvals/${MISSING_ID}/decision`,
+    payload: { decision: 'reject' },
+  },
 ];
 
 let app: NestFastifyApplication;

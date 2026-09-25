@@ -13,6 +13,7 @@ import { MailModule } from './mail/mail.module.js';
 import { AccessModule, PermissionGuard } from './modules/access/index.js';
 import { AdmissionsModule } from './modules/admissions/index.js';
 import { AuditModule } from './modules/audit/index.js';
+import { BillingModule } from './modules/billing/index.js';
 import { CatalogModule } from './modules/catalog/index.js';
 import { CohortsModule } from './modules/cohorts/index.js';
 import { AuthGuard, IdentityModule } from './modules/identity/index.js';
@@ -43,6 +44,7 @@ export class AppModule {
         StudentsModule,
         AdmissionsModule,
         CohortsModule,
+        BillingModule,
         AccessModule,
       ],
       providers: [
