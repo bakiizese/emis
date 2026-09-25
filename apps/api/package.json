@@ -17,6 +17,7 @@
   "dependencies": {
     "@emis/contracts": "workspace:*",
     "@emis/db": "workspace:*",
+    "@emis/permissions": "workspace:*",
     "@fastify/cookie": "^11.1.2",
     "@fastify/helmet": "^13.1.1",
     "@nestjs-cls/transactional": "^4.0.1",

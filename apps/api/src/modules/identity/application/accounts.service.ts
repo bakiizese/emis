@@ -1,5 +1,5 @@
 import { emailSchema } from '@emis/contracts';
-import { userAccounts } from '@emis/db';
+import { type AccountStatus, userAccounts } from '@emis/db';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
@@ -77,5 +77,35 @@ export class AccountsService {
       if (isUniqueViolation(error)) throw authErrors.emailTaken();
       throw error;
     }
+  }
+
+  /** Set (or replace) a password after checking it against the policy. */
+  async setPassword(userId: string, password: string): Promise<void> {
+    const account = await this.findById(userId);
+    if (!account) throw new Error(`Account ${userId} not found`);
+    const check = this.policy.check(password, [account.email, account.displayName]);
+    if (!check.ok) throw authErrors.weakPassword(check.reason);
+
+    await this.txHost.tx
+      .update(userAccounts)
+      .set({
+        passwordHash: await this.hasher.hash(password),
+        passwordChangedAt: new Date(),
+        failedLoginCount: 0,
+        lockedUntil: null,
+      })
+      .where(eq(userAccounts.id, userId));
+  }
+
+  async setStatus(userId: string, status: AccountStatus): Promise<void> {
+    await this.txHost.tx.update(userAccounts).set({ status }).where(eq(userAccounts.id, userId));
+  }
+
+  /** From now on this account must use two-factor authentication (e.g. it was given an admin role). */
+  async enforceMfa(userId: string): Promise<void> {
+    await this.txHost.tx
+      .update(userAccounts)
+      .set({ mfaEnforced: true })
+      .where(eq(userAccounts.id, userId));
   }
 }

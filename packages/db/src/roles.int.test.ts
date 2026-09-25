@@ -69,14 +69,19 @@ describe('database roles', () => {
     });
   });
 
-  it('security events are append-only for the app role', async () => {
+  it.each(['security_events', 'audit_log'])('%s is append-only for the app role', async (table) => {
     await withClient(urls.appUrl, async (c) => {
-      await c.query("INSERT INTO security_events (type) VALUES ('test.append_only')");
-      await expect(c.query("UPDATE security_events SET type = 'tampered'")).rejects.toThrow(
+      await c.query(
+        table === 'audit_log'
+          ? "INSERT INTO audit_log (occurred_at, action, entity_type, hash) VALUES (now(), 'test.append_only', 'test', md5(random()::text))"
+          : "INSERT INTO security_events (type) VALUES ('test.append_only')",
+      );
+      const column = table === 'audit_log' ? 'action' : 'type';
+      await expect(c.query(`UPDATE ${table} SET ${column} = 'tampered'`)).rejects.toThrow(
         /permission denied/,
       );
-      await expect(c.query('DELETE FROM security_events')).rejects.toThrow(/permission denied/);
-      await expect(c.query('TRUNCATE security_events')).rejects.toThrow(/permission denied/);
+      await expect(c.query(`DELETE FROM ${table}`)).rejects.toThrow(/permission denied/);
+      await expect(c.query(`TRUNCATE ${table}`)).rejects.toThrow(/permission denied/);
     });
   });
 

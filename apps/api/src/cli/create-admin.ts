@@ -5,36 +5,47 @@ import { ClsService } from 'nestjs-cls';
 
 import { AppModule } from '../app.module.js';
 import { loadEnv } from '../config/env.js';
-import { AccountsService } from '../modules/identity/index.js';
+import { AdminBootstrapService } from '../modules/access/index.js';
 import { prompt } from './prompt.js';
 
 /**
- * Creates the first administrator account (two-factor authentication is enforced for it).
+ * Creates an administrator, or grants the Admin role to an existing account (e.g. one created
+ * before roles existed, or to recover a locked-out install). Two-factor sign-in is enforced.
  *   pnpm --filter @emis/api account:create-admin
  * Non-interactive (installers/CI): set ADMIN_EMAIL, ADMIN_NAME and ADMIN_PASSWORD.
  */
 async function main(): Promise<void> {
   const env = loadEnv();
-  const email = process.env.ADMIN_EMAIL ?? (await prompt('Admin email: '));
-  const displayName = process.env.ADMIN_NAME ?? (await prompt('Full name: '));
-  let password = process.env.ADMIN_PASSWORD;
-  if (!password) {
-    password = await prompt('Password (min 12 chars): ', { hidden: true });
-    if ((await prompt('Repeat password: ', { hidden: true })) !== password) {
-      throw new Error('Passwords do not match.');
-    }
-  }
-
   const app = await NestFactory.createApplicationContext(AppModule.forRoot(env), {
     logger: ['error', 'warn'],
   });
   try {
+    const bootstrap = app.get(AdminBootstrapService);
     const cls = app.get(ClsService);
-    const { id } = await cls.run(() =>
-      app.get(AccountsService).create({ email, displayName, password, mfaEnforced: true }),
+
+    const email = process.env.ADMIN_EMAIL ?? (await prompt('Admin email: '));
+    const existing = await cls.run(() => bootstrap.findExisting(email));
+
+    let displayName = existing?.displayName ?? '';
+    let password: string | undefined;
+    if (!existing) {
+      displayName = process.env.ADMIN_NAME ?? (await prompt('Full name: '));
+      password = process.env.ADMIN_PASSWORD;
+      if (!password) {
+        password = await prompt('Password (min 12 chars): ', { hidden: true });
+        if ((await prompt('Repeat password: ', { hidden: true })) !== password) {
+          throw new Error('Passwords do not match.');
+        }
+      }
+    }
+
+    const { userId, created } = await cls.run(() =>
+      bootstrap.ensureAdmin({ email, displayName, password }),
     );
     console.warn(
-      `Created admin ${email} (${id}). Sign in to the portal to set up two-factor authentication.`,
+      created
+        ? `Created admin ${email} (${userId}). Sign in to the portal to set up two-factor authentication.`
+        : `${email} already existed: granted the Admin role (two-factor sign-in is now required).`,
     );
   } finally {
     await app.close();

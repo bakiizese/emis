@@ -15,6 +15,13 @@
       "when": 1790333494782,
       "tag": "0001_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790338469693,
+      "tag": "0002_access_audit",
+      "breakpoints": true
     }
   ]
 }

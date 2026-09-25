@@ -32,7 +32,7 @@ cp .env.example .env     # then set the passwords
 pnpm infra:up            # Postgres, Valkey, S3, Gotenberg, Mailpit
 pnpm db:bootstrap        # once: creates the database roles (safe to re-run)
 pnpm db:migrate          # applies migrations
-pnpm --filter @emis/api account:create-admin   # first admin (two-factor sign-in enforced)
+pnpm --filter @emis/api account:create-admin   # first admin, or grant Admin to an existing account
 pnpm dev                 # api :4000 · web :3000 · portal :3001
 ```
 
@@ -51,6 +51,16 @@ http://localhost:3001/login, where the admin is walked through authenticator-app
 - Generic errors and constant-time checks (no account enumeration), progressive lockout, per-IP rate limits
 - CSRF protection via Origin / Fetch-Metadata checks on every state-changing request
 - Append-only security event log (the app's database role can't update or delete it)
+
+### Access control
+
+- Four built-in roles (Admin, Coordinator, Secretary, Instructor) defined in `packages/permissions`,
+  synced into the database on every migrate. Roles can be granted institution-wide or per branch/department
+- Every API route declares `@Public()`, `@SelfService()` or `@RequirePermission(...)`. Anything else is
+  denied, and a test fails CI if a route forgets
+- A permission matrix test checks every role against every protected endpoint
+- Staff join by invitation (single-use link, 72 h). The last active admin can't be removed or disabled
+- Hash-chained, append-only audit log of staff and role changes, with an integrity check in the portal
 
 ### Database roles
 

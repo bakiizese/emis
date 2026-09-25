@@ -14,9 +14,11 @@ import {
 } from '@emis/contracts';
 import { Body, Controller, Get, HttpCode, Post, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+
 import { Throttle } from '@nestjs/throttler';
 import type { FastifyReply } from 'fastify';
 
+import { SelfService } from '../../../common/authz/decorators.js';
 import { ApiZodBody, ApiZodResponse } from '../../../common/zod/openapi.js';
 import { ZodValidationPipe } from '../../../common/zod/zod-validation.js';
 import { AuthService } from '../application/auth.service.js';
@@ -54,6 +56,7 @@ export class AuthController {
   }
 
   @Post('logout')
+  @SelfService()
   @AllowMfaPending()
   @HttpCode(204)
   @ApiOperation({ summary: 'End the current session' })
@@ -67,6 +70,7 @@ export class AuthController {
   }
 
   @Get('me')
+  @SelfService()
   @AllowMfaPending()
   @ApiOperation({ summary: 'The signed-in user, session and what to do next' })
   @ApiZodResponse(200, meResponseSchema)
@@ -101,6 +105,7 @@ export class AuthController {
   }
 
   @Post('password/change')
+  @SelfService()
   @HttpCode(204)
   @Throttle({ default: { limit: 10, ttl: PER_MINUTE } })
   @ApiOperation({ summary: 'Change password; other sessions are signed out' })
