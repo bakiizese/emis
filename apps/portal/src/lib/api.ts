@@ -18,6 +18,8 @@ interface RequestOptions<T> {
   body?: unknown;
   /** Validates the response against the shared contract. */
   schema?: z.ZodType<T>;
+  /** Makes a retried request safe: the API replays the first response instead of repeating the work. */
+  idempotencyKey?: string;
 }
 
 /** Same-origin call to the EMIS API. Throws ApiError with the problem `code` on failure. */
@@ -31,7 +33,10 @@ export async function apiRequest<T = void>(
       method: options.method ?? 'GET',
       credentials: 'same-origin',
       cache: 'no-store',
-      headers: options.body === undefined ? {} : { 'content-type': 'application/json' },
+      headers: {
+        ...(options.body === undefined ? {} : { 'content-type': 'application/json' }),
+        ...(options.idempotencyKey ? { 'idempotency-key': options.idempotencyKey } : {}),
+      },
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     });
   } catch {

@@ -1,5 +1,9 @@
 import { createHash } from 'node:crypto';
 
+import { canonicalJson } from '../../../common/json/canonical-json.js';
+
+export { canonicalJson };
+
 /** The hashed content of an audit row (everything except the DB-generated id/seq and the hashes). */
 export interface AuditContent {
   occurredAt: string;
@@ -12,18 +16,6 @@ export interface AuditContent {
   requestId: string | null;
   ipAddress: string | null;
   userAgent: string | null;
-}
-
-/** JSON with object keys sorted at every level: the same data always hashes the same. */
-export function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
-  if (value !== null && typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([, v]) => v !== undefined)
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
-  }
-  return JSON.stringify(value) ?? 'null';
 }
 
 /** sha256(previous hash + canonical content). The first row chains from an empty string. */

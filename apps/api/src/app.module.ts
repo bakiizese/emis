@@ -1,18 +1,13 @@
-import { TransactionalAdapterDrizzleOrm } from '@nestjs-cls/transactional-adapter-drizzle-orm';
-import { ClsPluginTransactional } from '@nestjs-cls/transactional';
 import { type DynamicModule, Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { ClsModule } from 'nestjs-cls';
-import { LoggerModule } from 'nestjs-pino';
 
-import { CryptoModule } from './common/crypto/crypto.module.js';
 import { ProblemDetailsFilter } from './common/http/problem-details.filter.js';
-import { loggerOptions } from './common/logging/logger.options.js';
+import { IdempotencyInterceptor } from './common/idempotency/idempotency.interceptor.js';
 import { ZodValidationPipe } from './common/zod/zod-validation.js';
-import { APP_CONFIG, ConfigModule } from './config/config.module.js';
+import { APP_CONFIG } from './config/config.module.js';
 import type { Env } from './config/env.js';
-import { DatabaseModule, DRIZZLE } from './database/database.module.js';
+import { CoreModule } from './core/core.module.js';
 import { HealthModule } from './health/health.module.js';
 import { MailModule } from './mail/mail.module.js';
 import { AccessModule, PermissionGuard } from './modules/access/index.js';
@@ -25,20 +20,7 @@ export class AppModule {
     return {
       module: AppModule,
       imports: [
-        ConfigModule.forRoot(env),
-        LoggerModule.forRootAsync({ inject: [APP_CONFIG], useFactory: loggerOptions }),
-        DatabaseModule,
-        // Request-scoped context; powers @Transactional() so nested services share one transaction.
-        ClsModule.forRoot({
-          global: true,
-          middleware: { mount: true },
-          plugins: [
-            new ClsPluginTransactional({
-              imports: [DatabaseModule],
-              adapter: new TransactionalAdapterDrizzleOrm({ drizzleInstanceToken: DRIZZLE }),
-            }),
-          ],
-        }),
+        CoreModule.forRoot(env, { http: true }),
         ThrottlerModule.forRootAsync({
           inject: [APP_CONFIG],
           useFactory: (config: Env) => ({
@@ -47,7 +29,6 @@ export class AppModule {
             ],
           }),
         }),
-        CryptoModule,
         MailModule,
         HealthModule,
         IdentityModule,
@@ -62,6 +43,7 @@ export class AppModule {
         { provide: APP_GUARD, useClass: ThrottlerGuard },
         { provide: APP_GUARD, useExisting: AuthGuard },
         { provide: APP_GUARD, useExisting: PermissionGuard },
+        { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
       ],
     };
   }

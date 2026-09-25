@@ -17,14 +17,14 @@ import {
 } from '@emis/db';
 import type { Scope } from '@emis/permissions';
 import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, ilike, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 
 import type { Actor } from '../../../common/request/request-context.js';
 import { APP_CONFIG } from '../../../config/config.module.js';
 import type { Env } from '../../../config/env.js';
 import type { DbAdapter } from '../../../database/database.module.js';
-import { MAILER, type Mailer } from '../../../mail/mailer.js';
+import { EmailOutbox } from '../../../mail/email-outbox.service.js';
 import { AuditService } from '../../audit/index.js';
 import {
   AccountsService,
@@ -53,8 +53,6 @@ function escapeLike(value: string): string {
 
 @Injectable()
 export class UsersService {
-  private readonly logger = new Logger(UsersService.name);
-
   constructor(
     private readonly txHost: TransactionHost<DbAdapter>,
     private readonly accounts: AccountsService,
@@ -62,7 +60,7 @@ export class UsersService {
     private readonly roles: RolesService,
     private readonly scopes: ScopeResolver,
     private readonly audit: AuditService,
-    @Inject(MAILER) private readonly mailer: Mailer,
+    private readonly emails: EmailOutbox,
     @Inject(APP_CONFIG) private readonly env: Env,
   ) {}
 
@@ -107,15 +105,15 @@ export class UsersService {
     return user;
   }
 
-  /** Create the account, grant the role and email a single-use link to set a password. */
+  /** Create the account, grant the role and queue an email with a single-use link, all in one transaction. */
+  @Transactional()
   async invite(
     input: { email: string; displayName: string; roleKey: string; scope: Scope },
     inviter: Actor & { displayName: string },
   ): Promise<StaffUser> {
     const role = await this.requireGrantableRole(input.roleKey, input.scope);
     const { userId, token } = await this.createInvited(input, role, inviter);
-    this.sendInvitation({
-      userId,
+    await this.queueInvitation({
       email: input.email,
       displayName: input.displayName,
       roleName: role.name,
@@ -125,12 +123,12 @@ export class UsersService {
     return this.get(userId);
   }
 
+  @Transactional()
   async resendInvitation(userId: string, inviter: Actor & { displayName: string }): Promise<void> {
     const user = await this.get(userId);
     if (user.status !== 'invited') throw accessErrors.alreadyActivated();
     const token = await this.reissueInvitation(userId, inviter);
-    this.sendInvitation({
-      userId,
+    await this.queueInvitation({
       email: user.email,
       displayName: user.displayName,
       roleName: user.roles[0]?.roleName ?? 'staff',
@@ -291,29 +289,24 @@ export class UsersService {
     return token;
   }
 
-  private sendInvitation(input: {
-    userId: string;
+  private queueInvitation(input: {
     email: string;
     displayName: string;
     roleName: string;
     token: string;
     inviter: { displayName: string };
-  }): void {
-    // Sent after the transaction committed, so the link always points at a real invitation.
-    const email = invitationEmail({
-      to: input.email,
-      displayName: input.displayName,
-      inviterName: input.inviter.displayName,
-      roleName: input.roleName,
-      appName: this.env.APP_NAME,
-      url: `${this.env.PORTAL_URL}/accept-invite#token=${input.token}`,
-      hours: INVITATION_TTL_HOURS,
-    });
-    this.mailer.send(email).catch((error: unknown) => {
-      this.logger.warn(
-        `invitation email to user ${input.userId} not sent: ${error instanceof Error ? error.message : 'unknown'}`,
-      );
-    });
+  }): Promise<void> {
+    return this.emails.send(
+      invitationEmail({
+        to: input.email,
+        displayName: input.displayName,
+        inviterName: input.inviter.displayName,
+        roleName: input.roleName,
+        appName: this.env.APP_NAME,
+        url: `${this.env.PORTAL_URL}/accept-invite#token=${input.token}`,
+        hours: INVITATION_TTL_HOURS,
+      }),
+    );
   }
 
   /**

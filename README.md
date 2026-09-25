@@ -33,7 +33,7 @@ pnpm infra:up            # Postgres, Valkey, S3, Gotenberg, Mailpit
 pnpm db:bootstrap        # once: creates the database roles (safe to re-run)
 pnpm db:migrate          # applies migrations
 pnpm --filter @emis/api account:create-admin   # first admin, or grant Admin to an existing account
-pnpm dev                 # api :4000 · web :3000 · portal :3001
+pnpm dev                 # api :4000 + worker · web :3000 · portal :3001
 ```
 
 Set `ENCRYPTION_KEY` in `.env` first (`openssl rand -base64 32`). Then sign in at
@@ -61,6 +61,16 @@ http://localhost:3001/login, where the admin is walked through authenticator-app
 - A permission matrix test checks every role against every protected endpoint
 - Staff join by invitation (single-use link, 72 h). The last active admin can't be removed or disabled
 - Hash-chained, append-only audit log of staff and role changes, with an integrity check in the portal
+
+### Reliability
+
+- **Idempotency keys:** side-effecting endpoints accept an `Idempotency-Key`. A retry (double-click, flaky
+  network) replays the first response instead of repeating the work, even under concurrent duplicates
+- **Transactional outbox:** events (like emails) are written in the same transaction as the change and
+  delivered by the worker through BullMQ on Valkey. Rolled-back changes send nothing; crashes lose nothing.
+  Payloads carrying links or tokens are encrypted at rest and in the queue
+- **Exactly-once handlers:** an inbox table makes redelivered events run once per handler
+- **Housekeeping jobs** (expired keys, delivered events, dead sessions) run on fixed schedules
 
 ### Database roles
 

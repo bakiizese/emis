@@ -12,8 +12,7 @@ import { generate } from 'otplib';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 
-import type { CapturingMailer } from '../../testing/capturing-mailer.js';
-import { createTestAppWithMailer } from '../../testing/create-test-app.js';
+import { createTestAppWithMailer, type TestApp } from '../../testing/create-test-app.js';
 import { AccountsService } from './index.js';
 
 const PASSWORD = 'lantern-orbit-velvet-cactus';
@@ -21,7 +20,7 @@ const COOKIE = '__Host-emis_session';
 const urls = inject('database');
 
 let app: NestFastifyApplication;
-let mailer: CapturingMailer;
+let mail: TestApp['mail'];
 let db: pg.Client;
 let ipCounter = 10;
 
@@ -80,7 +79,7 @@ function problemCode(res: LightMyRequestResponse): string {
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
 beforeAll(async () => {
-  ({ app, mailer } = await createTestAppWithMailer({ env: { DATABASE_URL: urls.appUrl } }));
+  ({ app, mail } = await createTestAppWithMailer({ env: { DATABASE_URL: urls.appUrl } }));
   db = new pg.Client({ connectionString: urls.appUrl });
   await db.connect();
 });
@@ -208,7 +207,7 @@ describe('lockout', () => {
       password: PASSWORD,
     });
     expect(problemCode(correct)).toBe('INVALID_CREDENTIALS');
-    expect(mailer.lastTo('locked@lingua.test')?.subject).toMatch(/locked/);
+    expect((await mail.lastTo('locked@lingua.test'))?.subject).toMatch(/locked/);
 
     const { rows } = await db.query<{ type: string }>(
       `SELECT type FROM security_events
@@ -341,15 +340,15 @@ describe('passwords', () => {
       (await client.call('POST', '/auth/password/forgot', { email: 'nobody@lingua.test' }))
         .statusCode,
     ).toBe(202);
-    expect(mailer.lastTo('nobody@lingua.test')).toBeUndefined();
+    expect(await mail.lastTo('nobody@lingua.test')).toBeUndefined();
 
     expect(
       (await client.call('POST', '/auth/password/forgot', { email: 'forgot@lingua.test' }))
         .statusCode,
     ).toBe(202);
-    const link = mailer
-      .lastTo('forgot@lingua.test')
-      ?.text.match(/https:\/\/portal\.test\/reset-password#token=([\w-]+)/);
+    const link = (await mail.lastTo('forgot@lingua.test'))?.text.match(
+      /https:\/\/portal\.test\/reset-password#token=([\w-]+)/,
+    );
     const token = link?.[1] ?? '';
     expect(token.length).toBeGreaterThan(30);
 

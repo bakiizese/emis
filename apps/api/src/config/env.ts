@@ -41,6 +41,8 @@ export const envSchema = z
     LOG_LEVEL: z.enum(logLevels).default('info'),
 
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+    /** Job queues (worker only). The API itself never talks to Valkey. */
+    VALKEY_URL: z.url({ protocol: /^rediss?$/ }).optional(),
     DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
     DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(100).default(15_000),
 
