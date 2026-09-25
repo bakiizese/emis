@@ -73,6 +73,11 @@ export class FacilitiesService {
     return rows.map(toShift);
   }
 
+  async shiftExists(id: string): Promise<boolean> {
+    const [row] = await this.db.select({ id: shifts.id }).from(shifts).where(eq(shifts.id, id));
+    return row !== undefined;
+  }
+
   @Transactional()
   async createShift(input: CreateShiftRequest & { code: string }, actor: Actor): Promise<Shift> {
     let row: ShiftRow | undefined;

@@ -35,6 +35,11 @@ export const settingsErrors = {
       code: c.setupCompleted,
       message: 'Setup is already done. Change settings from the Settings pages.',
     }),
+  invalidListValue: (namespace: string) =>
+    new UnprocessableEntityException({
+      code: 'INVALID_LIST_VALUE',
+      message: `That isn't one of the choices in the "${namespace.replaceAll('_', ' ')}" list.`,
+    }),
   unknownPreset: (key: string) =>
     new UnprocessableEntityException({
       code: c.unknownPreset,

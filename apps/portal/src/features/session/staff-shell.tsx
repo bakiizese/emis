@@ -17,6 +17,8 @@ import { useSession } from './use-session';
 
 const NAV: { href: string; label: string; permission?: Permission }[] = [
   { href: '/', label: 'Home' },
+  { href: '/students', label: 'Students', permission: 'students.read' },
+  { href: '/admissions', label: 'Admissions', permission: 'admissions.read' },
   { href: '/academics', label: 'Academics', permission: 'catalog.read' },
   { href: '/users', label: 'Staff', permission: 'users.read' },
   { href: '/settings', label: 'Settings', permission: 'settings.manage' },

@@ -70,6 +70,21 @@ Nothing about an institution is hard-coded. An admin configures it from the port
 - A Coordinator limited to one department can edit only that department's programs and courses;
   everything else here is Admin-only. Every staff role can read the catalog
 
+### Students and admissions
+
+- **Student records** with Ethiopian-style names (first, father's, grandfather's), a normalized phone
+  ("0911 22 33 44" and "+251 911-223344" are the same number), guardians (one main contact, one payer),
+  the institution's own categories and custom fields, and numbers from the configurable pattern
+- **Search** by name words in any order, student number or part of a phone, on a trigram index; lists page with keyset cursors
+- **Duplicate detection** before registering: same phone, same email or a near-identical name (typos
+  included), across every branch. It stops the registration until someone confirms it's a different person
+- **Admissions pipeline:** submitted → contacted → placement scheduled → placed → offered → confirmed → enrolled,
+  with rejected / withdrawn / expired exits, as a small state machine. A placement result recommends a
+  starting level and is limited by department; registering an offered applicant as a student is one locked
+  step, so a double click makes one student, not two
+- A Secretary is limited to their branch's students and applicants. Audit entries say what changed and
+  by whom, never the person's details
+
 ### Authentication
 
 - Server-side sessions in an HttpOnly `__Host-` cookie (only a SHA-256 of the token is stored), with idle and absolute timeouts

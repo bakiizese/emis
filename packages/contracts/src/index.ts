@@ -1,4 +1,5 @@
 export * from './access.js';
+export * from './admissions.js';
 export * from './audit.js';
 export * from './auth.js';
 export * from './catalog.js';
@@ -6,5 +7,7 @@ export * from './custom-fields.js';
 export * from './health.js';
 export * from './numbering.js';
 export * from './pagination.js';
+export * from './phone.js';
 export * from './problem.js';
 export * from './settings.js';
+export * from './students.js';

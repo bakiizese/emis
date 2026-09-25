@@ -80,6 +80,14 @@ export class CoursesService {
     return row;
   }
 
+  /** The course and the department it belongs to (through its program), or null if it doesn't exist. */
+  async findWithDepartment(id: string): Promise<{ course: Course; departmentId: string } | null> {
+    const [row] = await this.db.select().from(courses).where(eq(courses.id, id));
+    if (!row) return null;
+    const program = await this.programs.row(row.programId);
+    return { course: toCourse(row, []), departmentId: program.departmentId };
+  }
+
   async get(id: string): Promise<Course> {
     const row = await this.row(id);
     const prerequisites = await this.prerequisitesOf([id]);

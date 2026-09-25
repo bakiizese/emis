@@ -1,5 +1,11 @@
 import { ACCESS_ERROR_CODES } from '@emis/contracts';
-import { type Grant, hasPermission, type Permission, type Target } from '@emis/permissions';
+import {
+  type Grant,
+  hasPermission,
+  type Permission,
+  scopesFor,
+  type Target,
+} from '@emis/permissions';
 import { ForbiddenException } from '@nestjs/common';
 
 /**
@@ -18,4 +24,25 @@ export function assertScope(
       message: "You don't have permission to do that.",
     });
   }
+}
+
+/**
+ * Which branches a permission lets the caller see, for filtering lists: `'all'`, or the branch ids
+ * they're limited to. A department-scoped grant isn't tied to any branch (students only get a
+ * department through their enrollments, which come later), so it reaches every branch.
+ */
+export function branchReach(grants: readonly Grant[], permission: Permission): 'all' | string[] {
+  const reach = scopesFor(grants, permission);
+  if (reach.all || reach.departmentIds.length > 0) return 'all';
+  return reach.branchIds;
+}
+
+/** 403 unless `branchReach` covers this branch. For reading one record at a known branch. */
+export function assertBranchAccess(
+  grants: readonly Grant[],
+  permission: Permission,
+  branchId: string,
+): void {
+  const reach = branchReach(grants, permission);
+  if (reach !== 'all' && !reach.includes(branchId)) assertScope([], permission);
 }

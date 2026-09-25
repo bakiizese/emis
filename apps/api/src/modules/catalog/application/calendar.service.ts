@@ -151,6 +151,11 @@ export class CalendarService {
     return rows.map(toIntake);
   }
 
+  async intakeExists(id: string): Promise<boolean> {
+    const [row] = await this.db.select({ id: intakes.id }).from(intakes).where(eq(intakes.id, id));
+    return row !== undefined;
+  }
+
   @Transactional()
   async createIntake(input: Required<CreateIntakeRequest>, actor: Actor): Promise<Intake> {
     if (input.programId) {

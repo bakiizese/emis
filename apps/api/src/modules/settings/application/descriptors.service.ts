@@ -7,7 +7,7 @@ import type {
 import { descriptors, updateWithVersion } from '@emis/db';
 import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 
 import { isUniqueViolation } from '../../../common/db/errors.js';
 import { versionedRow } from '../../../common/http/versioning.js';
@@ -43,6 +43,19 @@ export class DescriptorsService {
       .where(eq(descriptors.namespace, namespace))
       .orderBy(asc(descriptors.sortOrder), asc(descriptors.label));
     return rows.map(toDescriptor);
+  }
+
+  /**
+   * Records store a descriptor's code. Only a value that's currently in use may be picked, so a
+   * retired or made-up code is refused. `null` (nothing chosen) always passes.
+   */
+  async assertActiveCode(namespace: DescriptorNamespace, code: string | null): Promise<void> {
+    if (code === null) return;
+    const [row] = await this.txHost.tx
+      .select({ isActive: descriptors.isActive })
+      .from(descriptors)
+      .where(and(eq(descriptors.namespace, namespace), eq(descriptors.code, code)));
+    if (!row?.isActive) throw settingsErrors.invalidListValue(namespace);
   }
 
   @Transactional()

@@ -5,4 +5,5 @@ export * from './columns.js';
 export * from './identity.js';
 export * from './messaging.js';
 export * from './settings.js';
+export * from './students.js';
 export * from './types.js';
