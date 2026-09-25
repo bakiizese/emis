@@ -20,6 +20,7 @@ const NAV: { href: string; label: string; permission?: Permission }[] = [
   { href: '/students', label: 'Students', permission: 'students.read' },
   { href: '/admissions', label: 'Admissions', permission: 'admissions.read' },
   { href: '/cohorts', label: 'Classes', permission: 'cohorts.read' },
+  { href: '/billing', label: 'Billing', permission: 'billing.read' },
   { href: '/academics', label: 'Academics', permission: 'catalog.read' },
   { href: '/users', label: 'Staff', permission: 'users.read' },
   { href: '/settings', label: 'Settings', permission: 'settings.manage' },
@@ -61,7 +62,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh">
-      <header className="border-border border-b">
+      <header className="border-border border-b print:hidden">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4">
           <Link href="/" className="text-sm font-semibold tracking-wide">
             {profile?.shortName ?? 'EMIS'}

@@ -7,6 +7,7 @@ import { versionedRow } from '../../../common/http/versioning.js';
 import type { Actor } from '../../../common/request/request-context.js';
 import type { DbAdapter } from '../../../database/database.module.js';
 import { AuditService, diffChanges } from '../../audit/index.js';
+import { calendarParts } from '../domain/calendar.js';
 import { ModulesService } from './modules.service.js';
 import { TerminologyService } from './terminology.service.js';
 
@@ -49,6 +50,13 @@ export class InstitutionService {
     const [row] = options.forUpdate ? await query.for('update') : await query;
     if (!row) throw new InternalServerErrorException('Institution row is missing');
     return row;
+  }
+
+  /** Today's date ("YYYY-MM-DD") on the institution's own clock, which is what "overdue" is judged by. */
+  async today(): Promise<string> {
+    const { timezone } = await this.row();
+    const { year, month, day } = calendarParts(new Date(), timezone);
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
 
   async get(): Promise<Institution> {

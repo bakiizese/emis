@@ -193,6 +193,35 @@ export class EnrollmentsService {
     return row;
   }
 
+  /**
+   * What billing needs to know about an enrollment: whose it is, its status, the course and branch
+   * the class belongs to, and when the class starts (the date fees are priced at).
+   */
+  async billingContext(id: string): Promise<{
+    enrollmentId: string;
+    status: EnrollmentStatus;
+    studentId: string;
+    cohortId: string;
+    courseId: string;
+    branchId: string;
+    startDate: string;
+  } | null> {
+    const [row] = await this.db
+      .select({
+        enrollmentId: enrollments.id,
+        status: enrollments.status,
+        studentId: enrollments.studentId,
+        cohortId: enrollments.cohortId,
+        courseId: cohorts.courseId,
+        branchId: cohorts.branchId,
+        startDate: cohorts.startDate,
+      })
+      .from(enrollments)
+      .innerJoin(cohorts, eq(cohorts.id, enrollments.cohortId))
+      .where(eq(enrollments.id, id));
+    return row ?? null;
+  }
+
   // --- enrolling -----------------------------------------------------------------------------
 
   /** The student must have completed every prerequisite course (in any cohort of that course). */

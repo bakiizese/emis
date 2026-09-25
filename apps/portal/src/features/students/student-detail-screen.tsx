@@ -36,6 +36,11 @@ import { useDescriptorOptions } from '@/features/people/use-lists';
 import { formatDate } from '@/features/academics/use-catalog';
 import { cohortStatusLabel } from '@/features/cohorts/cohorts-screen';
 import { useStudentEnrollments } from '@/features/cohorts/use-cohorts';
+import { useMoney } from '@/features/billing/money';
+import { invoiceLabel, invoiceTone } from '@/features/billing/invoices-screen';
+import { useStudentInvoices } from '@/features/billing/use-billing';
+import { invoiceSchema } from '@emis/contracts';
+import { useIdempotencyKey } from '@/lib/idempotency';
 import { Badge } from '@emis/ui/components/badge';
 import { useSession } from '@/features/session/use-session';
 import { ApiError, apiRequest, errorMessage } from '@/lib/api';
@@ -308,6 +313,84 @@ function GuardiansCard({
   );
 }
 
+/** Invoices for the student, and a button to bill any class they're in that hasn't been billed yet. */
+function BillingCard({ studentId, canInvoice }: { studentId: string; canInvoice: boolean }) {
+  const { fmt } = useMoney();
+  const queryClient = useQueryClient();
+  const invoices = useStudentInvoices(studentId, true);
+  const enrollments = useStudentEnrollments(studentId, true);
+  const idempotency = useIdempotencyKey();
+
+  const billed = new Set(invoices.data?.items.map((i) => i.enrollmentId));
+  const unbilled = (enrollments.data?.items ?? []).filter(
+    (e) => (e.status === 'active' || e.status === 'completed') && !billed.has(e.id),
+  );
+
+  const create = useMutation({
+    mutationFn: (enrollmentId: string) => {
+      const body = { enrollmentId };
+      return apiRequest('/invoices', {
+        method: 'POST',
+        body,
+        schema: invoiceSchema,
+        idempotencyKey: idempotency.keyFor(body),
+      });
+    },
+    onSuccess: async () => {
+      idempotency.reset();
+      await queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Fees</CardTitle>
+      </CardHeader>
+      {invoices.error ? <Alert tone="error">{errorMessage(invoices.error)}</Alert> : null}
+      {create.error ? <Alert tone="error">{errorMessage(create.error)}</Alert> : null}
+      {invoices.data && invoices.data.items.length === 0 && unbilled.length === 0 ? (
+        <p className="text-muted-foreground text-sm">Nothing billed yet.</p>
+      ) : null}
+      <ul className="divide-border divide-y">
+        {invoices.data?.items.map((i) => (
+          <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+            <div>
+              <Link
+                href={`/billing/invoices/${i.id}`}
+                className="font-mono text-xs font-medium hover:underline"
+              >
+                {i.number}
+              </Link>
+              <div className="text-muted-foreground text-xs">
+                {fmt(i.total)} ·{' '}
+                {i.status === 'paid' || i.status === 'void'
+                  ? invoiceLabel(i.status)
+                  : `${fmt(i.balance)} to pay`}
+              </div>
+            </div>
+            <Badge tone={invoiceTone[i.status]}>{invoiceLabel(i.status)}</Badge>
+          </li>
+        ))}
+        {unbilled.map((e) => (
+          <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+            <span>{e.cohortName} has no invoice yet.</span>
+            {canInvoice ? (
+              <Button
+                className="h-8 px-3"
+                disabled={create.isPending}
+                onClick={() => create.mutate(e.id)}
+              >
+                Create invoice
+              </Button>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 function ClassesCard({ studentId }: { studentId: string }) {
   const { term } = useInstitution();
   const enrollments = useStudentEnrollments(studentId, true);
@@ -394,6 +477,9 @@ export function StudentDetailScreen({ studentId }: { studentId: string }) {
         onSaved={setNotice}
       />
       {can('enrollments.read') ? <ClassesCard studentId={data.id} /> : null}
+      {can('billing.read') ? (
+        <BillingCard studentId={data.id} canInvoice={can('billing.invoice')} />
+      ) : null}
       <GuardiansCard
         key={`guardians-${data.version}`}
         student={data}

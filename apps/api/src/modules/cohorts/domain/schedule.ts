@@ -1,3 +1,5 @@
+import { addDays } from '../../../common/dates.js';
+
 /** A holiday as stored: a date, whether it repeats yearly, and the branch it applies to (null = all). */
 export interface HolidayRule {
   date: string;
@@ -11,12 +13,6 @@ export const MAX_SESSIONS = 400;
 /** 0 = Sunday … 6 = Saturday, for a "YYYY-MM-DD" date, independent of the server's time zone. */
 export function weekdayOf(date: string): number {
   return new Date(`${date}T00:00:00Z`).getUTCDay();
-}
-
-function addDays(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
 }
 
 /** Does this holiday close the branch on that date? Recurring ones match month and day only. */
