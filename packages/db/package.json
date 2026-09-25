@@ -1,0 +1,51 @@
+{
+  "name": "@emis/db",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Database layer: Drizzle schema, migrations, role bootstrap and query helpers",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
+    },
+    "./testing/vitest-global-setup": {
+      "types": "./dist/testing/vitest-global-setup.d.ts",
+      "default": "./dist/testing/vitest-global-setup.js"
+    }
+  },
+  "files": [
+    "dist",
+    "migrations"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "db:bootstrap": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/cli/bootstrap.ts",
+    "db:migrate": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/cli/migrate.ts",
+    "db:generate": "node --env-file-if-exists=../../.env ./node_modules/drizzle-kit/bin.cjs generate"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.3",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@emis/config": "workspace:*",
+    "@swc-node/register": "^1.12.1",
+    "@swc/core": "^1.16.2",
+    "@testcontainers/postgresql": "^12.1.0",
+    "@types/node": "^24.13.6",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^0.31.11",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.2"
+  }
+}

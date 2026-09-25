@@ -1,18 +1,24 @@
 import 'reflect-metadata';
 
 import { NestFactory } from '@nestjs/core';
-import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 
+import { configureApp, createFastifyAdapter } from './app.setup.js';
 import { AppModule } from './app.module.js';
-import { API_PREFIX } from './constants.js';
+import { loadEnv } from './config/env.js';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
-  app.setGlobalPrefix(API_PREFIX);
-  app.enableShutdownHooks();
-
-  const port = Number(process.env.API_PORT ?? 4000);
-  await app.listen(port, '0.0.0.0');
+  const env = loadEnv();
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule.forRoot(env),
+    createFastifyAdapter(env),
+    { bufferLogs: true },
+  );
+  await configureApp(app, env);
+  await app.listen(env.API_PORT, env.API_HOST);
 }
 
-void bootstrap();
+bootstrap().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+});

@@ -7,7 +7,7 @@ Each institution runs its own install and configures it for what it teaches: a s
 program, or several departments (Language, Computer, Music, Tutoring…) with their own programs,
 shifts, rooms and fees.
 
-> Status: early development (`chore/p1-bootstrap`). First deployment: Lingua Computer and Language Institute.
+> Status: early development. First deployment: Lingua Computer and Language Institute.
 
 ## Architecture
 
@@ -30,15 +30,30 @@ corepack enable          # provides the pinned pnpm version
 pnpm install
 cp .env.example .env     # then set the passwords
 pnpm infra:up            # Postgres, Valkey, S3, Gotenberg, Mailpit
+pnpm db:bootstrap        # once: creates the database roles (safe to re-run)
+pnpm db:migrate          # applies migrations
 pnpm dev                 # api :4000 · web :3000 · portal :3001
 ```
 
-Check the API: `curl http://localhost:4000/api/v1/health`
+- API health: `curl http://localhost:4000/api/v1/health` (readiness: `/api/v1/health/ready`)
+- API reference: http://localhost:4000/api/docs
+- Outgoing email in dev: http://localhost:8025
+
+### Database roles
+
+The API never connects as a superuser. `pnpm db:bootstrap` creates three roles from the URLs in `.env`:
+
+| Role            | Used by     | Can                                        |
+| --------------- | ----------- | ------------------------------------------ |
+| `emis_migrator` | migrations  | own the schema, run DDL                    |
+| `emis_app`      | API, worker | read and write rows; no DDL, no `TRUNCATE` |
+| `emis_readonly` | reporting   | `SELECT` only, read-only transactions      |
 
 ## Quality checks
 
 ```bash
-pnpm check        # lint + typecheck + tests (same as CI)
+pnpm check              # lint + typecheck + unit tests
+pnpm test:integration   # against a real Postgres in Docker (Testcontainers)
 pnpm deps:check   # architectural boundaries
 pnpm format       # Prettier
 ```
