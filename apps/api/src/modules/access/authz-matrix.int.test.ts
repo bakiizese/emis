@@ -19,7 +19,7 @@ const MISSING_ID_2 = '0199a1b2-0000-7000-8000-000000000001';
 /** One representative request per protected endpoint, and the permission it needs. */
 const ENDPOINTS: {
   permission: Permission;
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   url: string;
   payload?: object;
 }[] = [
@@ -42,6 +42,54 @@ const ENDPOINTS: {
   },
   { permission: 'audit.read', method: 'GET', url: '/audit-log' },
   { permission: 'audit.read', method: 'GET', url: '/audit-log/verify' },
+  { permission: 'settings.read', method: 'GET', url: '/institution' },
+  { permission: 'settings.read', method: 'GET', url: '/branches' },
+  { permission: 'settings.read', method: 'GET', url: '/departments' },
+  { permission: 'settings.read', method: 'GET', url: '/modules' },
+  { permission: 'settings.read', method: 'GET', url: '/descriptors?namespace=lead_source' },
+  { permission: 'settings.read', method: 'GET', url: '/custom-fields?entityType=student' },
+  { permission: 'settings.read', method: 'GET', url: '/terminology' },
+  { permission: 'settings.read', method: 'GET', url: '/number-series' },
+  // Allowed callers get 400/404/428 here: nothing is changed by these probes.
+  { permission: 'settings.manage', method: 'PATCH', url: '/institution', payload: {} },
+  { permission: 'settings.manage', method: 'POST', url: '/branches', payload: {} },
+  { permission: 'settings.manage', method: 'PATCH', url: `/branches/${MISSING_ID}`, payload: {} },
+  { permission: 'settings.manage', method: 'POST', url: '/departments', payload: {} },
+  {
+    permission: 'settings.manage',
+    method: 'PATCH',
+    url: `/departments/${MISSING_ID}`,
+    payload: {},
+  },
+  {
+    permission: 'settings.manage',
+    method: 'PUT',
+    url: '/modules/not_a_module',
+    payload: { enabled: true },
+  },
+  { permission: 'settings.manage', method: 'POST', url: '/descriptors', payload: {} },
+  {
+    permission: 'settings.manage',
+    method: 'PATCH',
+    url: `/descriptors/${MISSING_ID}`,
+    payload: {},
+  },
+  { permission: 'settings.manage', method: 'POST', url: '/custom-fields', payload: {} },
+  {
+    permission: 'settings.manage',
+    method: 'PATCH',
+    url: `/custom-fields/${MISSING_ID}`,
+    payload: {},
+  },
+  { permission: 'settings.manage', method: 'PUT', url: '/terminology', payload: {} },
+  {
+    permission: 'settings.manage',
+    method: 'PUT',
+    url: '/number-series/not_a_series',
+    payload: { pattern: 'X-{SEQ:4}' },
+  },
+  { permission: 'settings.manage', method: 'GET', url: '/setup' },
+  { permission: 'settings.manage', method: 'POST', url: '/setup', payload: {} },
 ];
 
 let app: NestFastifyApplication;

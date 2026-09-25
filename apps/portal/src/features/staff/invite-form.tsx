@@ -1,6 +1,11 @@
 'use client';
 
-import { inviteStaffRequestSchema, roleListResponseSchema, staffUserSchema } from '@emis/contracts';
+import {
+  inviteStaffRequestSchema,
+  roleListResponseSchema,
+  type ScopeInput,
+  staffUserSchema,
+} from '@emis/contracts';
 import { Alert } from '@emis/ui/components/alert';
 import { Button } from '@emis/ui/components/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@emis/ui/components/card';
@@ -8,15 +13,26 @@ import { Field } from '@emis/ui/components/field';
 import { SelectField } from '@emis/ui/components/select';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
+import { useInstitution } from '@/features/institution/use-institution';
+import { useBranches, useDepartments } from '@/features/institution/use-org-units';
 import { ApiError, apiRequest, errorMessage } from '@/lib/api';
 import { useIdempotencyKey } from '@/lib/idempotency';
 
-// The form only offers the institution-wide scope until branches and departments exist.
-const formSchema = inviteStaffRequestSchema.omit({ scope: true });
+// Where the role applies, as one select value: "global", "branch:<id>" or "department:<id>".
+const formSchema = inviteStaffRequestSchema
+  .omit({ scope: true })
+  .extend({ where: z.string().min(1, 'Choose where the role applies') });
 type FormValues = z.input<typeof formSchema>;
+
+function toScope(where: string): ScopeInput {
+  const [type, id] = where.split(':');
+  if ((type === 'branch' || type === 'department') && id) return { type, id };
+  return { type: 'global' };
+}
 
 export function InviteForm({ onDone }: { onDone: (email: string) => void }) {
   const queryClient = useQueryClient();
@@ -27,19 +43,24 @@ export function InviteForm({ onDone }: { onDone: (email: string) => void }) {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { email: '', displayName: '', roleKey: 'secretary' },
+    defaultValues: { email: '', displayName: '', roleKey: 'secretary', where: 'global' },
   });
   const { errors } = form.formState;
+  const { term } = useInstitution();
+  const branches = useBranches();
+  const departments = useDepartments();
 
   const idempotency = useIdempotencyKey();
   const invite = useMutation({
-    mutationFn: (values: FormValues) =>
-      apiRequest('/users/invitations', {
+    mutationFn: ({ where, ...values }: FormValues) => {
+      const body = { ...values, scope: toScope(where) };
+      return apiRequest('/users/invitations', {
         method: 'POST',
-        body: values,
+        body,
         schema: staffUserSchema,
-        idempotencyKey: idempotency.keyFor(values),
-      }),
+        idempotencyKey: idempotency.keyFor(body),
+      });
+    },
     onSuccess: async (user) => {
       idempotency.reset();
       await queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -54,6 +75,28 @@ export function InviteForm({ onDone }: { onDone: (email: string) => void }) {
 
   const roleKey = useWatch({ control: form.control, name: 'roleKey' });
   const selected = roles.data?.items.find((r) => r.key === roleKey);
+  const allowed = selected?.allowedScopes ?? ['global'];
+  const places = [
+    ...(allowed.includes('global') ? [{ value: 'global', label: 'Whole institution' }] : []),
+    ...(allowed.includes('branch')
+      ? (branches.data?.items ?? [])
+          .filter((b) => b.isActive)
+          .map((b) => ({ value: `branch:${b.id}`, label: `${term('branch')}: ${b.name}` }))
+      : []),
+    ...(allowed.includes('department')
+      ? (departments.data?.items ?? [])
+          .filter((d) => d.isActive)
+          .map((d) => ({ value: `department:${d.id}`, label: `${term('department')}: ${d.name}` }))
+      : []),
+  ];
+
+  // A role that can't be limited (e.g. Admin) resets the choice to the whole institution.
+  const { setValue, getValues } = form;
+  const placeValues = places.map((p) => p.value).join('|');
+  useEffect(() => {
+    const values = placeValues.split('|');
+    if (!values.includes(getValues('where'))) setValue('where', values[0] ?? 'global');
+  }, [placeValues, getValues, setValue]);
 
   return (
     <Card>
@@ -94,11 +137,18 @@ export function InviteForm({ onDone }: { onDone: (email: string) => void }) {
             </option>
           ))}
         </SelectField>
-        <p className="text-muted-foreground text-sm sm:col-span-2">
+        <SelectField label="Where" error={errors.where?.message} {...form.register('where')}>
+          {places.map((place) => (
+            <option key={place.value} value={place.value}>
+              {place.label}
+            </option>
+          ))}
+        </SelectField>
+        <p className="text-muted-foreground self-end text-sm sm:col-span-2">
           {selected?.description}
           {selected?.mfaRequired ? ' Requires two-factor authentication.' : ''}
         </p>
-        <div className="flex justify-end">
+        <div className="flex justify-end sm:col-span-3">
           <Button type="submit" disabled={invite.isPending}>
             {invite.isPending ? 'Sending…' : 'Send invitation'}
           </Button>

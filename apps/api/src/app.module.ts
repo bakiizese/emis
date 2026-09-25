@@ -13,6 +13,7 @@ import { MailModule } from './mail/mail.module.js';
 import { AccessModule, PermissionGuard } from './modules/access/index.js';
 import { AuditModule } from './modules/audit/index.js';
 import { AuthGuard, IdentityModule } from './modules/identity/index.js';
+import { ModuleGuard, SettingsModule } from './modules/settings/index.js';
 
 @Module({})
 export class AppModule {
@@ -33,16 +34,19 @@ export class AppModule {
         HealthModule,
         IdentityModule,
         AuditModule,
+        SettingsModule,
         AccessModule,
       ],
       providers: [
         { provide: APP_FILTER, useClass: ProblemDetailsFilter },
         { provide: APP_PIPE, useFactory: () => new ZodValidationPipe() },
         // Order matters: rate-limit first (even anonymous traffic), then require a session,
-        // then check the route's permission. Routes with no access rule are denied.
+        // then check the route's permission, then whether its module is switched on.
+        // Routes with no access rule are denied.
         { provide: APP_GUARD, useClass: ThrottlerGuard },
         { provide: APP_GUARD, useExisting: AuthGuard },
         { provide: APP_GUARD, useExisting: PermissionGuard },
+        { provide: APP_GUARD, useExisting: ModuleGuard },
         { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
       ],
     };

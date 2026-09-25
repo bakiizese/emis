@@ -20,6 +20,8 @@ interface RequestOptions<T> {
   schema?: z.ZodType<T>;
   /** Makes a retried request safe: the API replays the first response instead of repeating the work. */
   idempotencyKey?: string;
+  /** The `version` you last read; the API refuses the update (412) if someone changed it since. */
+  ifMatch?: number;
 }
 
 /** Same-origin call to the EMIS API. Throws ApiError with the problem `code` on failure. */
@@ -36,6 +38,7 @@ export async function apiRequest<T = void>(
       headers: {
         ...(options.body === undefined ? {} : { 'content-type': 'application/json' }),
         ...(options.idempotencyKey ? { 'idempotency-key': options.idempotencyKey } : {}),
+        ...(options.ifMatch === undefined ? {} : { 'if-match': `"${options.ifMatch}"` }),
       },
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     });
@@ -69,6 +72,8 @@ export async function apiRequest<T = void>(
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === 'RATE_LIMITED') return 'Too many attempts. Wait a minute and try again.';
+    if (error.code === 'VERSION_CONFLICT')
+      return 'Someone else changed this while you were editing. Reload the page and try again.';
     return error.message;
   }
   return 'Something went wrong. Please try again.';

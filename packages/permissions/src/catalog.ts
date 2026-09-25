@@ -8,6 +8,8 @@ export const PERMISSIONS = {
   'users.manage': 'Disable, enable and resend invitations to staff accounts',
   'roles.assign': 'Grant or remove roles',
   'audit.read': 'Read the audit log and verify its integrity',
+  'settings.read': 'See institution settings: branches, departments, lists and terminology',
+  'settings.manage': 'Change institution settings, modules, numbering and run the setup wizard',
 } as const satisfies Record<string, string>;
 
 export type Permission = keyof typeof PERMISSIONS;

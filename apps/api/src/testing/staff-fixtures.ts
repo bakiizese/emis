@@ -48,7 +48,7 @@ export async function createStaff(
 
 export function callAs(app: NestFastifyApplication, who: { cookie: string } | null) {
   return (
-    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     url: string,
     payload?: object,
     headers: Record<string, string> = {},

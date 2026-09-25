@@ -11,15 +11,14 @@ shifts, rooms and fees.
 
 ## Architecture
 
-| Part                 | Tech                                                                         |
-| -------------------- | ---------------------------------------------------------------------------- |
-| `apps/api`           | NestJS 12 on Fastify, modular monolith, REST under `/api/v1`                 |
-| `apps/worker`        | NestJS standalone app for background jobs                                    |
-| `apps/portal`        | Next.js 16 staff portal (admin dashboard, SIS, finance)                      |
-| `apps/web`           | Next.js 16 public website                                                    |
-| `packages/contracts` | Zod schemas shared by backend and frontends                                  |
-| `packages/ui`        | Design system (Tailwind CSS v4, shadcn/ui style)                             |
-| Data                 | PostgreSQL 18, Valkey (cache and queues), S3 object storage, Gotenberg (PDF) |
+| Part                 | Tech                                                                                               |
+| -------------------- | -------------------------------------------------------------------------------------------------- |
+| `apps/api`           | NestJS 12 on Fastify, modular monolith, REST under `/api/v1`; `src/worker.ts` runs background jobs |
+| `apps/portal`        | Next.js 16 staff portal (admin dashboard, SIS, finance)                                            |
+| `apps/web`           | Next.js 16 public website                                                                          |
+| `packages/contracts` | Zod schemas shared by backend and frontends                                                        |
+| `packages/ui`        | Design system (Tailwind CSS v4, shadcn/ui style)                                                   |
+| Data                 | PostgreSQL 18, Valkey (cache and queues), S3 object storage, Gotenberg (PDF)                       |
 
 ## Getting started
 
@@ -37,11 +36,28 @@ pnpm dev                 # api :4000 + worker · web :3000 · portal :3001
 ```
 
 Set `ENCRYPTION_KEY` in `.env` first (`openssl rand -base64 32`). Then sign in at
-http://localhost:3001/login, where the admin is walked through authenticator-app setup.
+http://localhost:3001/login, where the admin is walked through authenticator-app setup and then the
+first-run setup wizard (institution details, branches, departments).
 
 - API health: `curl http://localhost:4000/api/v1/health` (readiness: `/api/v1/health/ready`)
 - API reference: http://localhost:4000/api/docs
 - Outgoing email in dev: http://localhost:8025
+
+### Institution setup
+
+Nothing about an institution is hard-coded. An admin configures it from the portal:
+
+- **Setup wizard** on first sign-in: profile, branding, currency, time zone, fiscal year, branches, and
+  departments from starting packs (Language, Computer, Tutoring) or their own
+- **Branches and departments**, which roles can be limited to (a Secretary at one campus, a Coordinator
+  for one department)
+- **Module switches** (website, pre-registration, placement, certificates…). A switched-off module's
+  routes answer 404 and its screens disappear
+- **Dropdown lists, custom fields and terminology** (call a cohort a "Batch") without code changes
+- **Numbering patterns** like `RCP-{BRANCH}-{FY}-{SEQ:6}`, issued from gapless counters: concurrent
+  issuers queue on a row lock, and a rolled-back transaction gives its number back
+- Settings changes need `If-Match` with the version you read, so two admins can't silently overwrite
+  each other (412 on conflict), and every change lands in the audit log
 
 ### Authentication
 
