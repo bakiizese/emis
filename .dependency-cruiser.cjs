@@ -70,7 +70,7 @@ module.exports = {
       comment: 'Production code must not import devDependencies.',
       from: {
         path: '^(apps|packages)/[^/]+/src/',
-        pathNot: ['[.](test|spec)[.]tsx?$', '/src/testing/'],
+        pathNot: ['[.](test|spec)[.]tsx?$', '/src/testing/', '^apps/e2e/'],
       },
       to: { dependencyTypes: ['npm-dev'], dependencyTypesNot: ['type-only', 'npm-peer'] },
     },

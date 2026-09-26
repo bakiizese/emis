@@ -24,7 +24,8 @@
     "db:generate": "pnpm --filter @emis/db db:generate",
     "infra:up": "docker compose -f infra/docker/compose.dev.yml --env-file .env up -d",
     "infra:down": "docker compose -f infra/docker/compose.dev.yml --env-file .env down",
-    "prepare": "husky"
+    "prepare": "husky",
+    "e2e": "pnpm build && pnpm --filter @emis/e2e test:e2e"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs,cjs}": [

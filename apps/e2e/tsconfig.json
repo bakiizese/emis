@@ -1,0 +1,11 @@
+{
+  "extends": "@emis/config/tsconfig/node.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "rootDir": ".",
+    // The tests contain code that runs inside the browser page (page.evaluate).
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["*.ts", "src/**/*.ts", "tests/**/*.ts"]
+}
