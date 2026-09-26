@@ -122,6 +122,20 @@ Nothing about an institution is hard-coded. An admin configures it from the port
   any money table, can't update allocations, and triggers refuse changes to an amount, number or line item
 - Receipts print from the portal; PDF receipts, ID cards and certificates come with the documents branch
 
+### Home dashboard
+
+- The portal home shows headline numbers for the areas each person may see, from one endpoint (`GET /api/v1/dashboard`)
+  that adds a block only when the caller holds the permission behind it, and limits it to the branches that permission
+  reaches: **a front desk at one branch sees that branch's applications, classes, students and cash, nothing else**
+- **Admin:** new applications and the pipeline, active students, open and running classes, waiting lists, seats filled per
+  shift, classes starting within two weeks, enrolled students per department, money collected this month against last,
+  still to collect and overdue, today's desk figures, and approvals waiting for them (never their own requests)
+- **Front desk (Secretary):** the same for their branch plus today's collections, instalments due today and overdue ones,
+  without revenue analytics. **Coordinator:** the academic side, no money. **Instructor** or anyone with no role: an empty
+  page with a note, not an error
+- Every figure is counted by the database when asked (the money uses the same code as the reports), so the home page can't
+  disagree with the screens it links to. The page refreshes each minute and is never cached
+
 ### Finance reports
 
 - **Revenue:** payments received in a date range (the month so far unless you pick one), grouped by day, month, branch,

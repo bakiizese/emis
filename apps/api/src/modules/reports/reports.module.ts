@@ -10,5 +10,6 @@ import { ReportsController } from './interface/reports.controller.js';
   imports: [AuditModule, SettingsModule],
   controllers: [ReportsController],
   providers: [ReportsService],
+  exports: [ReportsService],
 })
 export class ReportsModule {}

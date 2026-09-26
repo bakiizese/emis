@@ -6,6 +6,7 @@ export * from './billing.js';
 export * from './catalog.js';
 export * from './cohorts.js';
 export * from './custom-fields.js';
+export * from './dashboard.js';
 export * from './documents.js';
 export * from './health.js';
 export * from './money.js';
