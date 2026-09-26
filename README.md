@@ -7,7 +7,8 @@ Each institution runs its own install and configures it for what it teaches: a s
 program, or several departments (Language, Computer, Music, Tutoring…) with their own programs,
 shifts, rooms and fees.
 
-> Status: early development. First deployment: Lingua Computer and Language Institute.
+> Status: feature-complete and tested end to end; being prepared for its first deployment at Lingua Computer and
+> Language Institute.
 
 ## Architecture
 
@@ -16,9 +17,37 @@ shifts, rooms and fees.
 | `apps/api`           | NestJS 12 on Fastify, modular monolith, REST under `/api/v1`; `src/worker.ts` runs background jobs |
 | `apps/portal`        | Next.js 16 staff portal (admin dashboard, SIS, finance)                                            |
 | `apps/web`           | Next.js 16 public website                                                                          |
+| `apps/e2e`           | Playwright: the whole enrolment journey and browser security checks                                |
 | `packages/contracts` | Zod schemas shared by backend and frontends                                                        |
-| `packages/ui`        | Design system (Tailwind CSS v4, shadcn/ui style)                                                   |
-| Data                 | PostgreSQL 18, Valkey (cache and queues), S3 object storage, Gotenberg (PDF)                       |
+| `packages/ui`        | Design system (Tailwind CSS v4), and the shared security-header builder                            |
+| Data and services    | PostgreSQL 18, Valkey (job queues only), Gotenberg (PDF), Caddy (HTTPS in production)              |
+
+```mermaid
+flowchart LR
+  browser([Browsers]) --> caddy[Caddy]
+  caddy --> web[Website]
+  caddy --> portal[Portal]
+  caddy --> api[API]
+  api --> pg[(PostgreSQL)]
+  api --> pdf[Gotenberg]
+  worker[Worker] --> pg
+  worker --> vk[(Valkey)]
+  worker --> mail([Email])
+```
+
+More detail, with the module map and the flows that matter most (pre-registration and money), is in
+[docs/architecture.md](docs/architecture.md). Why it is built this way is in the
+[decision records](docs/adr/README.md).
+
+## Documentation
+
+| For                       | Read                                                                                |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| Understanding the system  | [Architecture](docs/architecture.md) and the [decision records](docs/adr/README.md) |
+| Installing and running it | [Deployment guide](docs/deployment.md) (server, HTTPS, updates, backups, recovery)  |
+| Front desk staff          | [Front desk guide](docs/guide-front-desk.md)                                        |
+| Administrators            | [Administrator guide](docs/guide-admin.md)                                          |
+| Contributors              | This README, and the conventions in `CLAUDE.md` if you use Claude Code              |
 
 ## Getting started
 
