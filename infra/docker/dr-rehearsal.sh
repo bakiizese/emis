@@ -14,15 +14,17 @@ set -euo pipefail
 : "${COMPOSE:?}" "${PROJECT:?}" "${AGE_KEY_FILE:?}" "${WEB_HOST:?}" "${PORTAL_HOST:?}" "${PORT:?}"
 step() { echo; echo "== $*"; }
 fail() { echo "FAIL: $*" >&2; exit 1; }
+# A fresh throwaway passphrase every run (nothing secret is written in this file).
+DRILL_PASSPHRASE="$(openssl rand -hex 16)"
 sql() { $COMPOSE exec -T postgres psql -U postgres -d emis -Atqc "$1"; }
 login_status() { curl -s -o /dev/null -w '%{http_code}' --resolve "$PORTAL_HOST:$PORT:127.0.0.1" -X POST \
   "http://$PORTAL_HOST:$PORT/api/v1/auth/login" -H "Origin: http://$PORTAL_HOST:$PORT" -H 'content-type: application/json' \
-  -d '{"email":"drill-owner@example.test","password":"correct-horse-battery-staple-91"}'; }
+  -d "{\"email\":\"drill-owner@example.test\",\"password\":\"$DRILL_PASSPHRASE\"}"; }
 
 step "1. Put real data in the system"
 for who in drill-owner drill-deputy; do
   $COMPOSE exec -T -e ADMIN_EMAIL="$who@example.test" -e ADMIN_NAME="Drill ${who#drill-}" \
-    -e ADMIN_PASSWORD="correct-horse-battery-staple-91" api node dist/cli/create-admin.js >/dev/null
+    -e ADMIN_PASSWORD="$DRILL_PASSPHRASE" api node dist/cli/create-admin.js >/dev/null
 done
 [ "$(login_status)" = 200 ] || fail "could not sign in before the disaster"
 before_accounts="$(sql 'SELECT count(*) FROM user_accounts')"
