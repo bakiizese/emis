@@ -18,6 +18,7 @@ import { CatalogModule } from './modules/catalog/index.js';
 import { CohortsModule } from './modules/cohorts/index.js';
 import { DocumentsModule } from './modules/documents/index.js';
 import { DashboardModule } from './modules/dashboard/index.js';
+import { ImportsModule } from './modules/imports/index.js';
 import { PostsModule } from './modules/posts/index.js';
 import { ReportsModule } from './modules/reports/index.js';
 import { PublicModule } from './modules/public/index.js';
@@ -55,6 +56,7 @@ export class AppModule {
         PublicModule,
         ReportsModule,
         DashboardModule,
+        ImportsModule,
         AccessModule,
       ],
       providers: [

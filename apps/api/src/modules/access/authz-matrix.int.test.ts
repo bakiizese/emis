@@ -244,6 +244,8 @@ const ENDPOINTS: {
   { permission: 'reports.finance', method: 'GET', url: '/reports/outstanding' },
   { permission: 'reports.finance', method: 'GET', url: '/reports/outstanding/items' },
   { permission: 'reports.finance', method: 'GET', url: '/reports/outstanding.csv' },
+  { permission: 'students.import', method: 'POST', url: '/imports/students/preview', payload: {} },
+  { permission: 'students.import', method: 'POST', url: '/imports/students', payload: {} },
   { permission: 'posts.read', method: 'GET', url: '/posts' },
   { permission: 'posts.read', method: 'GET', url: `/posts/${MISSING_ID}` },
   { permission: 'posts.manage', method: 'POST', url: '/posts', payload: {} },

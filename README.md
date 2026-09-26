@@ -102,6 +102,26 @@ Nothing about an institution is hard-coded. An admin configures it from the port
   than failed. Recording a result is limited to the course's department
 - Enrolling a student who came from an application finishes that application
 
+### Importing students from a spreadsheet
+
+- **Students > Import from CSV** (Admin, via the `students.import` permission). Download the template, fill it in
+  (columns can be in any order and common alternative names like `First Name`, `Sex`, `Mobile` and `Campus` work;
+  dates as `YYYY-MM-DD` or `DD/MM/YYYY`; `M`/`F` for gender), save as CSV UTF-8, then **check the file** first
+- **The check is a real dry run:** it runs exactly the steps of the import and then rolls the whole transaction back, so it
+  can't disagree with the real thing, saves nothing, and hands back the student numbers it used (numbers stay gapless).
+  It reports counts, columns it ignored (so a typo in a heading is noticed) and every problem by line number and column,
+  never repeating anyone's details
+- **The import** adds the good rows and skips, and reports, rows with problems and likely duplicates (same phone or email,
+  or a very similar name, against existing students and earlier rows of the same file). "Add them anyway" is an option.
+  Up to 2,000 rows per file
+- **Safe to retry:** it needs an `Idempotency-Key`, so a repeated request replays its first answer; and everything is
+  re-checked on the server each time, so sending the same file again under a new key finds those students already there and
+  skips them. Imports take one lock, so ten simultaneous imports of one file still add each person once
+- Branch limits apply per row (someone limited to one branch can't add students to another), an audit entry records the
+  counts without any names, and if the institution has required custom fields on students, the import says so up front
+  instead of failing on every row
+- Not yet: opening balances and historical payments, and custom-field columns
+
 ### Billing and payments
 
 - **Money is whole santim**, never a float, end to end (contracts, database `bigint`, portal input parsing).

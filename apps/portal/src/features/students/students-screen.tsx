@@ -57,10 +57,22 @@ export function StudentsScreen() {
         title={term('student', true)}
         description="Everyone registered here. Search by name, student number or phone."
         action={
-          can('students.manage') && !registering ? (
-            <Button onClick={() => setRegistering(true)}>
-              Register {term('student').toLowerCase()}
-            </Button>
+          !registering ? (
+            <div className="flex gap-2">
+              {can('students.import') ? (
+                <Link
+                  href="/students/import"
+                  className="border-border hover:bg-secondary inline-flex h-10 items-center rounded-md border px-4 text-sm font-medium"
+                >
+                  Import from CSV
+                </Link>
+              ) : null}
+              {can('students.manage') ? (
+                <Button onClick={() => setRegistering(true)}>
+                  Register {term('student').toLowerCase()}
+                </Button>
+              ) : null}
+            </div>
           ) : null
         }
       />
