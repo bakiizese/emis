@@ -10,6 +10,17 @@ const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/accept-
  * signed out). Second, a fresh nonce-based Content-Security-Policy and the standard security headers.
  */
 export function proxy(request: NextRequest) {
+  // Where /api goes when nothing in front of the portal (Caddy in production) already routes it to the
+  // API. Read at request time, so the same build works wherever it is deployed.
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return NextResponse.rewrite(
+      new URL(
+        `${request.nextUrl.pathname}${request.nextUrl.search}`,
+        process.env.API_INTERNAL_URL ?? 'http://localhost:4000',
+      ),
+    );
+  }
+
   const dev = process.env.NODE_ENV === 'development';
   const csp = buildCsp({ nonce: generateNonce(), dev });
   // CSP_REPORT_ONLY=true reports violations in the browser console instead of blocking them.
@@ -41,7 +52,7 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     {
-      source: '/((?!api|_next/static|_next/image|favicon.ico|robots.txt).*)',
+      source: '/((?!_next/static|_next/image|favicon.ico|robots.txt).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },

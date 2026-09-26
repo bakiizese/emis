@@ -1,0 +1,23 @@
+{
+  "name": "@emis/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "End-to-end smoke test: the whole enrolment journey in a real browser",
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@emis/config": "workspace:*",
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.13.6",
+    "@types/pg": "^8.23.1",
+    "typescript": "~6.0.3"
+  },
+  "dependencies": {
+    "@emis/db": "workspace:*",
+    "pg": "^8.23.0"
+  }
+}

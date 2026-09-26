@@ -33,3 +33,9 @@ pnpm-debug.log*
 
 # local-only tooling notes
 CLAUDE.md
+
+# end-to-end test output
+apps/e2e/test-results/
+apps/e2e/playwright-report/
+apps/e2e/.logs/
+apps/e2e/.seed.json

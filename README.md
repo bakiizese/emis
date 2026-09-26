@@ -285,7 +285,27 @@ pnpm check              # lint + typecheck + unit tests
 pnpm test:integration   # against a real Postgres in Docker (Testcontainers)
 pnpm deps:check   # architectural boundaries
 pnpm format       # Prettier
+pnpm e2e          # the whole journey in a real browser (needs `pnpm infra:up` and `pnpm db:bootstrap` first)
 ```
+
+### End-to-end test
+
+`pnpm e2e` builds everything, creates a fresh `emis_e2e` database, seeds one course with an open class and three staff
+accounts, starts the API, worker, website and portal as production builds (so the real Content-Security-Policy is in force),
+and drives Chromium through the story the system exists for:
+
+1. A visitor finds a course on the website and pre-registers; the confirmation email really arrives (through the outbox,
+   the worker and Mailpit)
+2. The front desk signs in, finds the application, registers the student, enrols them, creates the invoice, records a
+   payment and opens the receipt, whose PDF is fetched and checked
+3. A coordinator records the result and issues the certificate
+4. Anyone opens the certificate's QR link on the website and sees "Genuine"; an admin revokes it and the same link says
+   "Revoked"
+
+Every browser session in the test is watched: a script or style the security policy refuses, or an uncaught JavaScript
+error, fails the test. A second set of tests checks what the browser does with the policy (a new nonce each load, injected
+markup that would run script is refused, the pages can't be framed by another site). It runs in CI on every change, and
+keeps traces and logs from a failed run. First time locally: `pnpm --filter @emis/e2e exec playwright install chromium`.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/) and are checked by a
 git hook.
