@@ -1,7 +1,15 @@
 import type { PublicContact } from '@emis/contracts';
 import Link from 'next/link';
 
-export function SiteFooter({ name, contact }: { name: string; contact: PublicContact | null }) {
+export function SiteFooter({
+  name,
+  contact,
+  hasNews,
+}: {
+  name: string;
+  contact: PublicContact | null;
+  hasNews: boolean;
+}) {
   return (
     <footer className="border-border bg-muted mt-16 border-t">
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 text-sm sm:grid-cols-2">
@@ -32,6 +40,11 @@ export function SiteFooter({ name, contact }: { name: string; contact: PublicCon
           <Link href="/courses" className="hover:underline">
             Courses
           </Link>
+          {hasNews ? (
+            <Link href="/news" className="hover:underline">
+              News
+            </Link>
+          ) : null}
           <Link href="/contact" className="hover:underline">
             Contact
           </Link>

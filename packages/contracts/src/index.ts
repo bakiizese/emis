@@ -11,6 +11,7 @@ export * from './health.js';
 export * from './money.js';
 export * from './numbering.js';
 export * from './pagination.js';
+export * from './posts.js';
 export * from './phone.js';
 export * from './problem.js';
 export * from './public.js';

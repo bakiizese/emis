@@ -24,6 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
       profile?.tagline ??
       'Browse our courses, pick a shift that fits your day and pre-register online.',
     openGraph: { siteName: name, type: 'website' },
+    alternates: { types: { 'application/rss+xml': '/feed.xml' } },
   };
 }
 
@@ -50,9 +51,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           name={profile.shortName}
           coursesLabel={term(profile, 'course', true)}
           canRegister={profile.modules.pre_registration}
+          hasNews={profile.modules.news}
         />
         <div className="min-h-[60dvh]">{children}</div>
-        <SiteFooter name={profile.name} contact={contact} />
+        <SiteFooter name={profile.name} contact={contact} hasNews={profile.modules.news} />
       </>
     );
   }

@@ -77,3 +77,23 @@ export function durationLabel(weeks: number | null, hours: number | null): strin
   ].filter((p): p is string => p !== null);
   return parts.length > 0 ? parts.join(' · ') : null;
 }
+
+/** A moment as a calendar date in the institution's time zone: "Sep 26, 2026". */
+export function formatInstant(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone,
+  }).format(new Date(iso));
+}
+
+const POST_KINDS = { announcement: 'Announcement', news: 'News', story: 'Story' } as const;
+export const postKindLabel = (kind: keyof typeof POST_KINDS): string => POST_KINDS[kind];
+
+/** Plain text to paragraphs: a blank line starts a new one. */
+export const paragraphs = (text: string): string[] =>
+  text
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);

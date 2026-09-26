@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { durationLabel, formatDate, formatDays, formatTime, seatsLabel } from './format';
+import {
+  durationLabel,
+  formatDate,
+  formatDays,
+  formatInstant,
+  formatTime,
+  paragraphs,
+  seatsLabel,
+} from './format';
 
 describe('formatDays', () => {
   it('shortens a run of weekdays', () => expect(formatDays([1, 2, 3, 4, 5])).toBe('Mon–Fri'));
@@ -46,4 +54,21 @@ describe('durationLabel', () => {
     expect(durationLabel(1, null)).toBe('1 week');
     expect(durationLabel(null, null)).toBeNull();
   });
+});
+
+describe('formatInstant', () => {
+  it('uses the institution time zone for the calendar day', () => {
+    // 22:30 UTC on the 25th is already the 26th in Addis Ababa (UTC+3).
+    expect(formatInstant('2026-09-25T22:30:00.000Z', 'Africa/Addis_Ababa')).toBe('Sep 26, 2026');
+    expect(formatInstant('2026-09-25T22:30:00.000Z', 'UTC')).toBe('Sep 25, 2026');
+  });
+});
+
+describe('paragraphs', () => {
+  it('splits on blank lines and drops empties', () =>
+    expect(paragraphs('One.\n\n  Two.  \n \n\nThree.\nStill three.')).toEqual([
+      'One.',
+      'Two.',
+      'Three.\nStill three.',
+    ]));
 });

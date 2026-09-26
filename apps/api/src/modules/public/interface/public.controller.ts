@@ -10,6 +10,12 @@ import {
   publicCatalogResponseSchema,
   publicClassListResponseSchema,
   publicContactSchema,
+  type PublicPost,
+  type PublicPostListQuery,
+  type PublicPostListResponse,
+  publicPostListQuerySchema,
+  publicPostListResponseSchema,
+  publicPostSchema,
   publicCourseDetailSchema,
 } from '@emis/contracts';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
@@ -22,11 +28,16 @@ import { ApiZodBody, ApiZodResponse } from '../../../common/zod/openapi.js';
 import { ZodValidationPipe } from '../../../common/zod/zod-validation.js';
 import { Public } from '../../identity/index.js';
 import { RequiresModule } from '../../settings/index.js';
+import { PostsService } from '../../posts/index.js';
 import { PreRegistrationsService } from '../application/pre-registrations.service.js';
 import { PublicCatalogService } from '../application/public-catalog.service.js';
 
 const uuid = new ParseUUIDPipe({ version: '7' });
 const PER_MINUTE = 60_000;
+const slugSchema = z
+  .string()
+  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)
+  .max(80);
 const upcomingQuerySchema = z.object({ limit: z.coerce.number().int().min(1).max(50).default(12) });
 
 /** Everything the public website reads and writes. Anonymous, so every route is deliberate. */
@@ -38,6 +49,7 @@ export class PublicController {
   constructor(
     private readonly catalog: PublicCatalogService,
     private readonly preRegistrations: PreRegistrationsService,
+    private readonly posts: PostsService,
   ) {}
 
   @Get('catalog')
@@ -68,6 +80,24 @@ export class PublicController {
   @ApiZodResponse(200, publicContactSchema)
   contact(): Promise<PublicContact> {
     return this.catalog.contact();
+  }
+
+  @Get('posts')
+  @RequiresModule('news')
+  @ApiOperation({ summary: 'Published news and announcements, newest first' })
+  @ApiZodResponse(200, publicPostListResponseSchema)
+  listPosts(
+    @Query(new ZodValidationPipe(publicPostListQuerySchema)) query: PublicPostListQuery,
+  ): Promise<PublicPostListResponse> {
+    return this.posts.listPublished(query);
+  }
+
+  @Get('posts/:slug')
+  @RequiresModule('news')
+  @ApiOperation({ summary: 'One published post' })
+  @ApiZodResponse(200, publicPostSchema)
+  post(@Param('slug', new ZodValidationPipe(slugSchema)) slug: string): Promise<PublicPost> {
+    return this.posts.getPublished(slug);
   }
 
   @Post('pre-registrations')
