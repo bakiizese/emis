@@ -278,6 +278,16 @@ The API never connects as a superuser. `pnpm db:bootstrap` creates three roles f
 | `emis_app`      | API, worker | read and write rows; no DDL, no `TRUNCATE` |
 | `emis_readonly` | reporting   | `SELECT` only, read-only transactions      |
 
+## Deploying
+
+`infra/docker` holds the production stack: one compose file that runs the API, worker, website, portal, database,
+queue and PDF service behind **Caddy** (automatic HTTPS, `/api` and the two sites on one origin per address). Three
+images (API and worker, website, portal) are built from one Dockerfile on a Node-only base, run as a non-root user, and are
+published on every merge to `main` and on version tags with build provenance, an SBOM and a keyless signature. Only
+Caddy publishes ports; the API, apps, database, queue and PDF service have no route to the internet. CI builds the
+images, scans them, brings the whole stack up and runs `smoke.sh` against it on every change. See
+[docs/deployment.md](docs/deployment.md) for the step-by-step guide.
+
 ## Quality checks
 
 ```bash

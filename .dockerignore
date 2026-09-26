@@ -1,0 +1,21 @@
+# Keep the build context small and free of anything private.
+.git
+.github
+node_modules
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+.env
+.env.*
+!.env.example
+CLAUDE.md
+**/CLAUDE.md
+**/AGENTS.md
+apps/e2e/test-results
+apps/e2e/.logs
+apps/e2e/.seed.json
+*.log
+.DS_Store
