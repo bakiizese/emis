@@ -133,11 +133,31 @@ Nothing about an institution is hard-coded. An admin configures it from the port
   changes, serials come from the gapless counter, and issuing twice is impossible (unique index). An optional
   policy withholds them until fees are paid in full. Revoking keeps the record; reissue = revoke, then issue again
 - **Public verification:** each certificate and ID card carries a random 256-bit token in its QR code. Anyone can
-  check it at `/api/v1/verify/<token>` (no sign-in) and sees only what's printed on the document, or that it was revoked.
+  check it on the website (`/verify/<token>`, which is what the QR opens; the API answers at `/api/v1/verify/<token>`,
+  no sign-in) and sees only what's printed on the document, or that it was revoked or expired.
   Reissuing an ID card revokes the old one, so a lost card stops verifying
 - **Fee reminders:** an hourly worker job emails the payer (or the student) 3 days before an instalment is due, on the
   day, and 3 and 7 days after, **once per stage** (a unique key makes that hold across workers), skipping paid
   instalments and invoices made today. A missed run catches up within two days, never floods with old stages
+
+### Public website
+
+- **Catalog pages** built live from the catalog: only published programs and active courses show, grouped by
+  department, each course with the classes still open to join, their shift (days and times), branch, start date and
+  the **seats left right now**. Headcounts and waiting lists stay private. Wording follows the institution's terminology
+  and colours, and the whole site answers "not available" when the website module is switched off
+- **Pre-registration** (`POST /api/v1/public/pre-registrations`) turns the web form into an application in the
+  admissions queue, tagged "Website", and emails the applicant a reference. It needs an `Idempotency-Key` (a UUID:
+  retries replay the first answer), is rate limited per visitor, carries a hidden honeypot field, and asks for consent.
+  The same person asking twice for the same course while their first request is open creates one application, even
+  when ten requests arrive at once (an advisory lock on their phone number), and the reply doesn't reveal that an
+  earlier request existed, so nobody can probe whose number is on file
+- **Certificate and ID checks:** the page behind the QR code shows Genuine, Revoked or Expired, or "not found"
+- Search engines get a sitemap, `robots.txt`, canonical links, Open Graph data and JSON-LD; verification pages are
+  kept out of results. The site reads the API server-side through a small cache (so many visitors don't spend the
+  API's rate limit) and keeps serving the last good answer if the API is briefly down
+- In production the site and API share one domain (Caddy sends `/api` to the API); in development the site proxies
+  `/api` to `API_INTERNAL_URL`
 
 ### Authentication
 

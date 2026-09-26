@@ -8,6 +8,7 @@ import type {
   CreateApplicationValues,
   DuplicateCandidate,
   PlacementValues,
+  PreRegistrationValues,
   UpdateApplicationValues,
 } from '@emis/contracts';
 import { afterCursor, applications, decodeCursor, toPage, updateWithVersion } from '@emis/db';
@@ -223,6 +224,80 @@ export class ApplicationsService {
       changes: { reference: row.reference, branchId: row.branchId, source: row.source },
     });
     return toApplication(row);
+  }
+
+  /**
+   * An application from the public website: no signed-in user, so no scope check. The same person
+   * asking twice for the same course while their first request is still open gets no second record
+   * (the lock makes this hold for simultaneous requests too), and the answer doesn't say so: a
+   * stranger typing someone else's number learns nothing. Returns the new reference, or null.
+   */
+  @Transactional()
+  async submitFromWebsite(input: PreRegistrationValues): Promise<{ reference: string | null }> {
+    if (!(await this.org.isActiveUnit('branch', input.branchId))) {
+      throw admissionsErrors.referenceNotFound('branch');
+    }
+    await this.checkReferences(input);
+
+    await this.db.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtext('emis.pre_registration'), hashtext(${input.phone}))`,
+    );
+    const [existing] = await this.db
+      .select({ id: applications.id })
+      .from(applications)
+      .where(
+        and(
+          eq(applications.phone, input.phone),
+          eq(applications.desiredCourseId, input.desiredCourseId),
+          notInArray(applications.status, CLOSED_STATUSES),
+        ),
+      )
+      .limit(1);
+    if (existing) return { reference: null };
+
+    const source = (await this.descriptors.isActiveCode('lead_source', 'website'))
+      ? 'website'
+      : null;
+    const notes =
+      [
+        input.guardianName || input.guardianPhone
+          ? `Parent or guardian: ${[input.guardianName, input.guardianPhone].filter(Boolean).join(', ')}`
+          : null,
+        input.message ? `Message: ${input.message}` : null,
+      ]
+        .filter((line): line is string => line !== null)
+        .join('\n') || null;
+
+    const { number } = await this.numbering.next('application', { branchId: input.branchId });
+    const [row] = await this.db
+      .insert(applications)
+      .values({
+        givenName: input.givenName,
+        fatherName: input.fatherName,
+        grandfatherName: input.grandfatherName,
+        gender: input.gender,
+        dateOfBirth: input.dateOfBirth,
+        phone: input.phone,
+        email: input.email,
+        city: input.city,
+        branchId: input.branchId,
+        desiredCourseId: input.desiredCourseId,
+        preferredShiftId: input.preferredShiftId,
+        preferredIntakeId: input.preferredIntakeId,
+        source,
+        notes,
+        reference: number,
+      })
+      .returning();
+    if (!row) throw admissionsErrors.notFound();
+
+    await this.audit.record({
+      action: 'application.submitted_online',
+      entityType: 'application',
+      entityId: row.id,
+      changes: { reference: row.reference, branchId: row.branchId, source },
+    });
+    return { reference: row.reference };
   }
 
   @Transactional()

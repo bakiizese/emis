@@ -13,5 +13,6 @@ export * from './numbering.js';
 export * from './pagination.js';
 export * from './phone.js';
 export * from './problem.js';
+export * from './public.js';
 export * from './settings.js';
 export * from './students.js';

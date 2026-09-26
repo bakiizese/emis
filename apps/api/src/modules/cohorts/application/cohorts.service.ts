@@ -170,6 +170,26 @@ export class CohortsService {
     return { items: await this.withNumbers(page.items), nextCursor: page.nextCursor };
   }
 
+  /**
+   * Classes a newcomer could still join (open or planned, not yet finished), soonest first, with
+   * live seat numbers. No grants: callers decide what to reveal (the public website hides counts).
+   */
+  async listJoinable(options: { today: string; courseId?: string }): Promise<Cohort[]> {
+    const rows = await this.db
+      .select()
+      .from(cohorts)
+      .where(
+        and(
+          inArray(cohorts.status, ['open', 'planned']),
+          sql`${cohorts.endDate} >= ${options.today}`,
+          options.courseId ? eq(cohorts.courseId, options.courseId) : undefined,
+        ),
+      )
+      .orderBy(asc(cohorts.startDate), asc(cohorts.id))
+      .limit(200);
+    return this.withNumbers(rows);
+  }
+
   /** The row for other services in this module; `forUpdate` takes the seat lock. */
   async row(id: string, options: { forUpdate?: boolean } = {}): Promise<CohortRow> {
     const query = this.db.select().from(cohorts).where(eq(cohorts.id, id));

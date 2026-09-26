@@ -58,6 +58,15 @@ export class DescriptorsService {
     if (!row?.isActive) throw settingsErrors.invalidListValue(namespace);
   }
 
+  /** Whether `code` is a value currently in use (for optional tags that must not fail a request). */
+  async isActiveCode(namespace: DescriptorNamespace, code: string): Promise<boolean> {
+    const [row] = await this.txHost.tx
+      .select({ isActive: descriptors.isActive })
+      .from(descriptors)
+      .where(and(eq(descriptors.namespace, namespace), eq(descriptors.code, code)));
+    return row?.isActive === true;
+  }
+
   @Transactional()
   async create(
     input: CreateDescriptorRequest & { code: string },

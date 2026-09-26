@@ -1,0 +1,2 @@
+# false positive: a made-up idempotency key in a test (0ff3058, fixed in the next commit)
+0ff305857a2863f4a4096914d18733005a6e5674:apps/api/src/modules/public/public.int.test.ts:generic-api-key:419
