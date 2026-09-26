@@ -39,6 +39,8 @@ export async function configureApp(app: NestFastifyApplication, env: Env): Promi
   const fastify = app.getHttpAdapter().getInstance();
   fastify.addHook('onRequest', (request, reply, done) => {
     void reply.header(REQUEST_ID_HEADER, request.id);
+    // Nothing from the API is meant to be kept by a browser or a proxy; a route that wants otherwise sets its own.
+    void reply.header('Cache-Control', 'no-store');
     done();
   });
   registerCsrfProtection(fastify, env.TRUSTED_ORIGINS);

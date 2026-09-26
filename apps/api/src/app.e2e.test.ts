@@ -71,6 +71,11 @@ describe('HTTP pipeline', () => {
     expect(res.headers['x-powered-by']).toBeUndefined();
   });
 
+  it('tells browsers and proxies not to keep API responses', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/health' });
+    expect(res.headers['cache-control']).toBe('no-store');
+  });
+
   it('assigns a request id and echoes safe incoming ones', async () => {
     const minted = await app.inject({ method: 'GET', url: '/api/v1/health' });
     expect(minted.headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/);

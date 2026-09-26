@@ -241,6 +241,23 @@ Nothing about an institution is hard-coded. An admin configures it from the port
 - Staff join by invitation (single-use link, 72 h). The last active admin can't be removed or disabled
 - Hash-chained, append-only audit log of staff and role changes, with an integrity check in the portal
 
+### Browser and network hardening
+
+- **Content Security Policy on the website and the portal:** every page gets a fresh one-time nonce, and only scripts
+  carrying it run, so an injected `<script>` is refused by the browser. No inline or eval'd scripts in production, no
+  framing (`frame-ancestors 'none'`), no plugins, forms and connections only to the site itself, and https is forced.
+  Also sent: `nosniff`, a strict referrer policy, a locked-down permissions policy, `Cross-Origin-Opener-Policy`, and HSTS in
+  production. Pages are rendered per request so the nonce can be stamped on them. If a page ever misbehaves under the
+  policy, set `CSP_REPORT_ONLY=true` to see what would be blocked in the browser console without blocking it
+- **The API** sends `Cache-Control: no-store` on everything unless a route says otherwise, a locked-down CSP, HSTS, and a
+  CORS list that is closed by default
+- **Anonymous routes are inventoried:** a test lists every endpoint that needs no sign-in (sign-in, password reset,
+  invitations, certificate check, the public catalog, news, pre-registration) with its reason, and fails if a new one
+  appears without being added on purpose. Every anonymous route that takes a secret or changes something must also set its own
+  rate limit, which the same test checks
+- **Dependencies:** CI audits them on every change and weekly (`pnpm audit`), alongside Trivy and gitleaks; the
+  known esbuild advisory from drizzle-kit's old loader is fixed with a pinned override
+
 ### Reliability
 
 - **Idempotency keys:** side-effecting endpoints accept an `Idempotency-Key`. A retry (double-click, flaky
