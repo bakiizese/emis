@@ -1,0 +1,172 @@
+# The production stack for one institution: everything on one server, behind Caddy.
+#
+#   cp .env.prod.example .env        # then fill it in (see the comments in that file)
+#   docker compose --env-file .env -f compose.prod.yml up -d
+#
+# Only Caddy publishes ports. Caddy (to get HTTPS certificates) and the worker (to send email) are the
+# only containers with a route to the internet; the API, the apps, the database, the queue and the PDF
+# service are on internal networks and can't reach out, so a bug that tricks one of them into fetching
+# a URL has nowhere to go.
+name: emis
+
+x-image: &image-prefix ${EMIS_IMAGE_PREFIX:-ghcr.io/bakiizese/emis}
+
+x-restart: &restart
+  restart: unless-stopped
+
+x-app-env: &app-env
+  NODE_ENV: production
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  TRUST_PROXY: 'true'
+  API_DOCS_ENABLED: 'false'
+  APP_NAME: ${APP_NAME:-EMIS}
+  WEB_URL: ${WEB_URL:?set WEB_URL in .env}
+  PORTAL_URL: ${PORTAL_URL:?set PORTAL_URL in .env}
+  DATABASE_URL: postgres://emis_app:${EMIS_DB_APP_PASSWORD:?set EMIS_DB_APP_PASSWORD}@postgres:5432/emis
+  VALKEY_URL: redis://:${VALKEY_PASSWORD:?set VALKEY_PASSWORD}@valkey:6379
+  GOTENBERG_URL: http://gotenberg:3000
+  ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set ENCRYPTION_KEY}
+  ENCRYPTION_KEYS_PREVIOUS: ${ENCRYPTION_KEYS_PREVIOUS:-}
+  SMTP_HOST: ${SMTP_HOST:?set SMTP_HOST}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_SECURE: ${SMTP_SECURE:-false}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  MAIL_FROM: ${MAIL_FROM:?set MAIL_FROM}
+  SESSION_IDLE_MINUTES: ${SESSION_IDLE_MINUTES:-30}
+  SESSION_ABSOLUTE_HOURS: ${SESSION_ABSOLUTE_HOURS:-12}
+
+services:
+  caddy:
+    <<: *restart
+    image: caddy:2-alpine
+    ports:
+      - ${HTTP_PORT:-80}:80
+      - ${HTTPS_PORT:-443}:443
+      - ${HTTPS_PORT:-443}:443/udp
+    environment:
+      # Normally the same as the public addresses; only a test on a non-standard port overrides them.
+      WEB_ADDRESS: ${WEB_ADDRESS:-${WEB_URL:?set WEB_URL in .env}}
+      PORTAL_ADDRESS: ${PORTAL_ADDRESS:-${PORTAL_URL:?set PORTAL_URL in .env}}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [edge, egress]
+    depends_on:
+      api: { condition: service_healthy }
+      web: { condition: service_healthy }
+      portal: { condition: service_healthy }
+
+  web:
+    <<: *restart
+    image: ${EMIS_IMAGE_PREFIX:-ghcr.io/bakiizese/emis}-web:${EMIS_TAG:-latest}
+    environment:
+      API_INTERNAL_URL: http://api:4000
+      WEB_URL: ${WEB_URL}
+      CSP_REPORT_ONLY: ${CSP_REPORT_ONLY:-}
+    networks: [edge]
+    depends_on:
+      api: { condition: service_healthy }
+
+  portal:
+    <<: *restart
+    image: ${EMIS_IMAGE_PREFIX:-ghcr.io/bakiizese/emis}-portal:${EMIS_TAG:-latest}
+    environment:
+      API_INTERNAL_URL: http://api:4000
+      CSP_REPORT_ONLY: ${CSP_REPORT_ONLY:-}
+    networks: [edge]
+    depends_on:
+      api: { condition: service_healthy }
+
+  api:
+    <<: *restart
+    image: ${EMIS_IMAGE_PREFIX:-ghcr.io/bakiizese/emis}-api:${EMIS_TAG:-latest}
+    environment: *app-env
+    networks: [edge, backend]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      valkey: { condition: service_healthy }
+      gotenberg: { condition: service_started }
+
+  worker:
+    <<: *restart
+    image: ${EMIS_IMAGE_PREFIX:-ghcr.io/bakiizese/emis}-api:${EMIS_TAG:-latest}
+    command: ['node', 'dist/worker.js']
+    environment: *app-env
+    # The only container allowed to reach the internet, so it can deliver email.
+    networks: [backend, egress]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      valkey: { condition: service_healthy }
+
+  # Runs once on every start: creates the database roles if they're missing, then applies any new
+  # migrations and refreshes the built-in roles. Safe to repeat.
+  migrate:
+    image: ${EMIS_IMAGE_PREFIX:-ghcr.io/bakiizese/emis}-api:${EMIS_TAG:-latest}
+    restart: 'no'
+    command:
+      - sh
+      - -c
+      - node node_modules/@emis/db/dist/cli/bootstrap.js && node node_modules/@emis/db/dist/cli/migrate.js
+    environment:
+      DATABASE_ADMIN_URL: postgres://postgres:${POSTGRES_ADMIN_PASSWORD:?set POSTGRES_ADMIN_PASSWORD}@postgres:5432/postgres
+      DATABASE_MIGRATOR_URL: postgres://emis_migrator:${EMIS_DB_MIGRATOR_PASSWORD:?set EMIS_DB_MIGRATOR_PASSWORD}@postgres:5432/emis
+      DATABASE_URL: postgres://emis_app:${EMIS_DB_APP_PASSWORD}@postgres:5432/emis
+      DATABASE_READONLY_URL: postgres://emis_readonly:${EMIS_DB_READONLY_PASSWORD:?set EMIS_DB_READONLY_PASSWORD}@postgres:5432/emis
+    networks: [backend]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  postgres:
+    <<: *restart
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    networks: [backend]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  valkey:
+    <<: *restart
+    image: valkey/valkey:8-alpine
+    command: ['valkey-server', '--appendonly', 'yes', '--requirepass', '${VALKEY_PASSWORD}']
+    environment:
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD}
+    volumes:
+      - valkey-data:/data
+    networks: [backend]
+    healthcheck:
+      test: ['CMD-SHELL', 'valkey-cli -a "$${VALKEY_PASSWORD}" --no-auth-warning ping | grep PONG']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # HTML to PDF. Nothing outside the stack can reach it, and it can't reach the internet.
+  gotenberg:
+    <<: *restart
+    image: gotenberg/gotenberg:8
+    networks: [backend]
+
+networks:
+  # Caddy talking to the apps and the API. No route to the outside world.
+  edge:
+    internal: true
+  # The API, worker, database, queue and PDF service. No route to the outside world.
+  backend:
+    internal: true
+  # The way out, for Caddy (certificates) and the worker (email) only.
+  egress: {}
+
+volumes:
+  postgres-data:
+  valkey-data:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,8 @@
+# Extra pieces for trying the production stack on a machine that is not a real server (and in CI):
+# a mail catcher so the worker has somewhere to deliver, reachable only inside the stack.
+#
+#   docker compose --env-file .env -f compose.prod.yml -f compose.smoke.yml up -d
+services:
+  mailpit:
+    image: axllent/mailpit:v1.31
+    networks: [egress]

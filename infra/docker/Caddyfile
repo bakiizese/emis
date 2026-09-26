@@ -1,0 +1,38 @@
+# One Caddy in front of everything. It gets and renews the HTTPS certificates by itself, so the two
+# addresses below must be real domain names that point at this server (ports 80 and 443 open).
+# In a private test, use http:// URLs and Caddy stays on plain http. (Caddy listens on the port written in the
+# address, so for a test on another host port, set WEB_ADDRESS/PORTAL_ADDRESS without it and map the port instead.)
+#
+#   WEB_URL     public website, e.g. https://www.example.et
+#   PORTAL_URL  staff portal,   e.g. https://portal.example.et
+#
+# On each address /api goes to the API and everything else to that site, so the browser only ever
+# talks to one origin (no CORS, and the sign-in cookie stays first-party).
+
+(common) {
+	encode zstd gzip
+	header -Server
+	request_body {
+		max_size 2MB
+	}
+}
+
+{$WEB_ADDRESS} {
+	import common
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}
+
+{$PORTAL_ADDRESS} {
+	import common
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+	handle {
+		reverse_proxy portal:3001
+	}
+}

@@ -2,8 +2,11 @@
   "name": "@emis/api",
   "version": "0.0.0",
   "private": true,
-  "description": "EMIS backend engine — NestJS modular monolith (HTTP API)",
+  "description": "EMIS backend engine \u2014 NestJS modular monolith (HTTP API)",
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "node --env-file-if-exists=../../.env --watch --import @swc-node/register/esm-register src/main.ts",
