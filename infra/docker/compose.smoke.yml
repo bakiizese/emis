@@ -6,3 +6,17 @@ services:
   mailpit:
     image: axllent/mailpit:v1.31
     networks: [egress]
+
+  # Offsite storage for the test is a plain folder, so the whole copy-and-restore path is exercised.
+  offsite:
+    # The test's "offsite" is a folder on a Docker volume, which only root can write to.
+    user: root
+    environment:
+      RCLONE_CONFIG_OFFSITE_TYPE: local
+      OFFSITE_PATH: /offsite
+      OFFSITE_EVERY_SECONDS: '10'
+    volumes:
+      - offsite-test:/offsite
+
+volumes:
+  offsite-test:

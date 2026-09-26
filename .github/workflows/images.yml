@@ -74,6 +74,16 @@ jobs:
           cache-from: type=gha,scope=api
           cache-to: type=gha,scope=portal,mode=max
 
+      - name: Build the backup image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: infra/docker/backup
+          file: infra/docker/backup/Dockerfile
+          load: true
+          tags: emis-backup:ci
+          cache-from: type=gha,scope=backup
+          cache-to: type=gha,scope=backup,mode=max
+
       - name: Scan the API and worker image for known vulnerabilities
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -101,6 +111,20 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
 
+      - name: Scan the backup image for known vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: emis-backup:ci
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Make a backup key pair for the test
+        run: |
+          docker run --rm --entrypoint age-keygen emis-backup:ci > "$RUNNER_TEMP/age-key.txt" 2>/dev/null
+          echo "BACKUP_PUBLIC_KEY=$(grep '# public key' "$RUNNER_TEMP/age-key.txt" | awk '{print $NF}')" >> "$GITHUB_ENV"
+
       - name: Start the production stack
         working-directory: infra/docker
         run: |
@@ -122,6 +146,7 @@ jobs:
           SMTP_HOST=mailpit
           SMTP_PORT=1025
           MAIL_FROM=EMIS <no-reply@example.test>
+          BACKUP_AGE_RECIPIENT=${BACKUP_PUBLIC_KEY}
           ENV
           docker compose -p emis-ci --env-file .env -f compose.prod.yml -f compose.smoke.yml up -d
 
@@ -133,6 +158,19 @@ jobs:
           PORTAL_HOST: portal.localhost
           PORT: '8081'
         run: ./smoke.sh
+
+      # Take a backup from the running system, destroy the database, queue and local backups, rebuild on an
+      # empty "server" from the offsite copy and the private key alone, and check the data and sign-in came back.
+      - name: Disaster drill (restore from the offsite backup)
+        working-directory: infra/docker
+        env:
+          COMPOSE: docker compose -p emis-ci --env-file .env -f compose.prod.yml -f compose.smoke.yml
+          PROJECT: emis-ci
+          AGE_KEY_FILE: ${{ runner.temp }}/age-key.txt
+          WEB_HOST: web.localhost
+          PORTAL_HOST: portal.localhost
+          PORT: '8081'
+        run: ./dr-rehearsal.sh
 
       - name: Show the logs when it fails
         if: failure()
@@ -152,7 +190,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [api, web, portal]
+        include:
+          - { target: api, stage: api, file: infra/docker/Dockerfile, context: . }
+          - { target: web, stage: web, file: infra/docker/Dockerfile, context: . }
+          - { target: portal, stage: portal, file: infra/docker/Dockerfile, context: . }
+          - {
+              target: backup,
+              stage: '',
+              file: infra/docker/backup/Dockerfile,
+              context: infra/docker/backup,
+            }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -185,9 +232,9 @@ jobs:
       - id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          context: .
-          file: ${{ env.DOCKERFILE }}
-          target: ${{ matrix.target }}
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          target: ${{ matrix.stage }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -285,7 +285,13 @@ queue and PDF service behind **Caddy** (automatic HTTPS, `/api` and the two site
 images (API and worker, website, portal) are built from one Dockerfile on a Node-only base, run as a non-root user, and are
 published on every merge to `main` and on version tags with build provenance, an SBOM and a keyless signature. Only
 Caddy publishes ports; the API, apps, database, queue and PDF service have no route to the internet. CI builds the
-images, scans them, brings the whole stack up and runs `smoke.sh` against it on every change. See
+images, scans them, brings the whole stack up and runs `smoke.sh` against it on every change.
+
+**Backups** run nightly: the database is dumped, **restored into a scratch database to prove it works**, encrypted with a
+public key (so the server can make backups but never read them; the private key stays with the owner) and copied off the
+server by a separate service that has no database access. A **disaster drill** (`infra/docker/dr-rehearsal.sh`, run in CI
+on every change) backs up a running system, destroys the database, queue and local backups, rebuilds on an empty server
+from the offsite copy and the private key alone, and checks the data and sign-in came back. See
 [docs/deployment.md](docs/deployment.md) for the step-by-step guide.
 
 ## Quality checks
