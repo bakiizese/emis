@@ -40,3 +40,6 @@ apps/e2e/test-results/
 apps/e2e/playwright-report/
 apps/e2e/.logs/
 apps/e2e/.seed.json
+
+# offsite storage credentials for backups (the template offsite.env.example is tracked)
+offsite.env

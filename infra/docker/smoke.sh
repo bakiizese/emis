@@ -71,15 +71,37 @@ else
   echo "skip: this machine has no internet, so outbound isolation can't be checked"
 fi
 # The database, queue and PDF service must sit only on internal networks.
-for service in postgres valkey gotenberg; do
+for service in postgres valkey gotenberg backup; do
   for network in $(docker inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}' "$($COMPOSE ps -q "$service")"); do
     [ "$(docker network inspect -f '{{.Internal}}' "$network")" = true ] || fail "$service is on $network, which has a route out"
   done
 done
-ok "database, queue and PDF service are on internal networks only"
+ok "database, queue, PDF service and backup are on internal networks only"
 
 [ -n "$($COMPOSE ps --status running -q worker)" ] || fail "the worker is not running"
 ok "worker running"
+
+# The service that copies backups off the server must not be able to reach the database, and the one that
+# can reach the database must not be able to reach the internet (checked above).
+if docker inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}' "$($COMPOSE ps -q offsite)" | grep -q backend; then
+  fail "the offsite copier is on the database network"
+fi
+ok "the offsite copier has no route to the database"
+
+# A backup was taken at start-up, proved it restores (into a scratch database), and was copied off the server.
+wait_for() { # description command...
+  local what="$1"; shift
+  for _ in $(seq 1 60); do "$@" >/dev/null 2>&1 && return 0; sleep 2; done
+  fail "$what"
+}
+backup_ok() { $COMPOSE exec -T backup cat /backups/status/backup.json | grep -q '"state":"ok"'; }
+offsite_ok() { $COMPOSE exec -T offsite cat /backups/status/offsite.json | grep -q '"state":"ok"'; }
+wait_for "no successful backup within 2 minutes" backup_ok
+ok "an encrypted backup was made and its restore drill passed"
+wait_for "the backup was not copied offsite within 2 minutes" offsite_ok
+ok "the backup was copied offsite"
+if $COMPOSE exec -T backup sh -c 'strings /backups/emis-*.dump.age | grep -qi "user_accounts"'; then fail "a backup contains readable database content"; fi
+ok "backups are encrypted (no readable content)"
 
 migrated="$($COMPOSE logs migrate 2>&1 | grep -c 'database is up to date' || true)"
 [ "$migrated" -ge 1 ] || fail "the migration did not report success"

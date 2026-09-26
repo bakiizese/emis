@@ -1,2 +1,5 @@
 # false positive: a made-up idempotency key in a test (0ff3058, fixed in the next commit)
 0ff305857a2863f4a4096914d18733005a6e5674:apps/api/src/modules/public/public.int.test.ts:generic-api-key:419
+# false positives: a throwaway drill password in a test script (cc99c18, replaced by a generated one in the next commit)
+cc99c18b3d18321b3e294b78d409268ea698c890:infra/docker/dr-rehearsal.sh:generic-api-key:20
+cc99c18b3d18321b3e294b78d409268ea698c890:infra/docker/dr-rehearsal.sh:generic-api-key:25

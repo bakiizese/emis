@@ -149,6 +149,41 @@ services:
       timeout: 5s
       retries: 20
 
+  # Nightly encrypted backup of the database. It proves every dump restores (into a scratch database)
+  # before keeping it, and can only write backups: it holds a public key, never the private one.
+  # No route to the internet; the 'offsite' service below does the copying.
+  backup:
+    <<: *restart
+    image: ${EMIS_IMAGE_PREFIX:-ghcr.io/bakiizese/emis}-backup:${EMIS_TAG:-latest}
+    environment:
+      POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:?set BACKUP_AGE_RECIPIENT in .env (see the backup section)}
+      BACKUP_AT: ${BACKUP_AT:-23:00}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - backups:/backups
+    # The plain dump only ever exists here, in memory, for the minute it takes to test and encrypt it.
+    tmpfs:
+      - /scratch:size=${BACKUP_SCRATCH_SIZE:-2g},uid=70,gid=70,mode=0700
+    networks: [backend]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  # Copies the encrypted backups off the server. It has no database access and sees only encrypted files.
+  # Where they go is set in offsite.env (see offsite.env.example).
+  offsite:
+    <<: *restart
+    image: ${EMIS_IMAGE_PREFIX:-ghcr.io/bakiizese/emis}-backup:${EMIS_TAG:-latest}
+    command: ['offsite-loop']
+    env_file:
+      - path: ./offsite.env
+        required: false
+    environment:
+      HEALTH_FOR: offsite
+    volumes:
+      - backups:/backups
+    networks: [egress]
+
   # HTML to PDF. Nothing outside the stack can reach it, and it can't reach the internet.
   gotenberg:
     <<: *restart
@@ -166,6 +201,7 @@ networks:
   egress: {}
 
 volumes:
+  backups:
   postgres-data:
   valkey-data:
   caddy-data:
