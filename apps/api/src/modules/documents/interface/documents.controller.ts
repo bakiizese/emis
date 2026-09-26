@@ -29,6 +29,7 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import { ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 
 import { CurrentGrants, RequirePermission } from '../../../common/authz/decorators.js';
 import { ApiIfMatch, IfMatchVersion } from '../../../common/http/versioning.js';
@@ -204,6 +205,8 @@ export class VerificationController {
 
   @Get(':token')
   @Public()
+  // Tokens are 256 random bits, so guessing is hopeless; this keeps anyone from even trying at speed.
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @Header('Cache-Control', 'no-store')
   @ApiOperation({
     summary:

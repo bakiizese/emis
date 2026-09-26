@@ -520,3 +520,21 @@ describe('switching modules off', () => {
     expect((await submit(form())).statusCode).toBe(201);
   });
 });
+
+describe('the certificate check page', () => {
+  it('is rate limited per visitor, whatever token is tried', async () => {
+    const ip = '10.7.7.7';
+    const token = 'A'.repeat(43);
+    const statuses: number[] = [];
+    for (let n = 0; n < 62; n++) {
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/v1/verify/${token}`,
+        remoteAddress: ip,
+      });
+      statuses.push(res.statusCode);
+    }
+    expect(statuses.slice(0, 60).every((s) => s === 404)).toBe(true);
+    expect(statuses.slice(60)).toEqual([429, 429]);
+  });
+});

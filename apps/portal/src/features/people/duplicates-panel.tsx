@@ -35,6 +35,7 @@ export function DuplicatesPanel({
                 href={`/students/${c.student.id}`}
                 className="font-medium hover:underline"
                 target="_blank"
+                rel="noopener noreferrer"
               >
                 {c.student.givenName} {c.student.fatherName} {c.student.grandfatherName ?? ''}
               </Link>

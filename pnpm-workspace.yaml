@@ -8,3 +8,8 @@ onlyBuiltDependencies:
   - esbuild
   - sharp
   - unrs-resolver
+
+# drizzle-kit's old config loader pulls in esbuild 0.18, which has a dev-server advisory
+# (GHSA-67mh-4wv8-2f99, fixed in 0.25). Use the patched version.
+overrides:
+  'esbuild@<0.25.0': '0.25.12'
