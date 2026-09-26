@@ -97,13 +97,13 @@ let visitor = 0;
 /** A pre-registration from a distinct visitor (own IP), so the per-IP limit doesn't get in the way. */
 const submit = (
   body: Record<string, unknown>,
-  options: { key?: string | null; ip?: string } = {},
+  options: { idem?: string | null; ip?: string } = {},
 ) =>
   app.inject({
     method: 'POST',
     url: '/api/v1/public/pre-registrations',
     remoteAddress: options.ip ?? `10.1.${Math.floor(++visitor / 250)}.${(visitor % 250) + 1}`,
-    headers: options.key === null ? {} : { 'idempotency-key': options.key ?? randomUUID() },
+    headers: options.idem === null ? {} : { 'idempotency-key': options.idem ?? randomUUID() },
     payload: body,
   });
 
@@ -404,8 +404,8 @@ describe('pre-registration', () => {
   it('replays a retry with the same key: one application, same answer', async () => {
     const body = form({ fatherName: 'Retry' });
     const idem = randomUUID();
-    const first = await submit(body, { key: idem });
-    const second = await submit(body, { key: idem });
+    const first = await submit(body, { idem });
+    const second = await submit(body, { idem });
 
     expect(first.statusCode).toBe(201);
     expect(second.statusCode).toBe(201);
@@ -415,10 +415,8 @@ describe('pre-registration', () => {
   });
 
   it('refuses a request without an Idempotency-Key, or a key that is not a UUID', async () => {
-    expect(code(await submit(form(), { key: null }))).toBe('IDEMPOTENCY_KEY_REQUIRED');
-    expect(code(await submit(form(), { key: 'guessable-key-123' }))).toBe(
-      'INVALID_IDEMPOTENCY_KEY',
-    );
+    expect(code(await submit(form(), { idem: null }))).toBe('IDEMPOTENCY_KEY_REQUIRED');
+    expect(code(await submit(form(), { idem: 'not-a-uuid' }))).toBe('INVALID_IDEMPOTENCY_KEY');
   });
 
   it('creates one application when the same person submits again with a new key', async () => {
