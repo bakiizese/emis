@@ -221,6 +221,24 @@ const ENDPOINTS: {
     url: `/approvals/${MISSING_ID}/decision`,
     payload: { decision: 'reject' },
   },
+  { permission: 'billing.read', method: 'GET', url: `/payments/${MISSING_ID}/receipt` },
+  { permission: 'certificates.read', method: 'GET', url: '/certificates' },
+  { permission: 'certificates.read', method: 'GET', url: `/certificates/${MISSING_ID}` },
+  { permission: 'certificates.read', method: 'GET', url: `/certificates/${MISSING_ID}/pdf` },
+  {
+    permission: 'certificates.issue',
+    method: 'POST',
+    url: `/enrollments/${MISSING_ID}/certificate`,
+  },
+  {
+    permission: 'certificates.revoke',
+    method: 'POST',
+    url: `/certificates/${MISSING_ID}/revoke`,
+    payload: {},
+  },
+  { permission: 'students.read', method: 'GET', url: `/students/${MISSING_ID}/id-card` },
+  { permission: 'students.read', method: 'GET', url: `/students/${MISSING_ID}/id-card/pdf` },
+  { permission: 'students.manage', method: 'POST', url: `/students/${MISSING_ID}/id-card` },
 ];
 
 let app: NestFastifyApplication;

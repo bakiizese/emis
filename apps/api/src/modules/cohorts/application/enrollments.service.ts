@@ -205,6 +205,7 @@ export class EnrollmentsService {
     courseId: string;
     branchId: string;
     startDate: string;
+    completedAt: Date | null;
   } | null> {
     const [row] = await this.db
       .select({
@@ -215,6 +216,7 @@ export class EnrollmentsService {
         courseId: cohorts.courseId,
         branchId: cohorts.branchId,
         startDate: cohorts.startDate,
+        completedAt: enrollments.completedAt,
       })
       .from(enrollments)
       .innerJoin(cohorts, eq(cohorts.id, enrollments.cohortId))

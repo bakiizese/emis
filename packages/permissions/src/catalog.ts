@@ -32,6 +32,9 @@ export const PERMISSIONS = {
   'billing.receive': 'Record payments and issue receipts',
   'billing.request': 'Ask for a discount or for a payment to be voided (a second person approves)',
   'approvals.decide': 'Approve or reject discount and void requests made by someone else',
+  'certificates.read': 'See and print certificates',
+  'certificates.issue': 'Issue certificates to students who completed a course',
+  'certificates.revoke': 'Revoke a certificate so it no longer verifies',
 } as const satisfies Record<string, string>;
 
 export type Permission = keyof typeof PERMISSIONS;

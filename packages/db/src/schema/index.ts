@@ -4,6 +4,7 @@ export * from './billing.js';
 export * from './catalog.js';
 export * from './cohorts.js';
 export * from './columns.js';
+export * from './documents.js';
 export * from './identity.js';
 export * from './messaging.js';
 export * from './settings.js';

@@ -122,6 +122,23 @@ Nothing about an institution is hard-coded. An admin configures it from the port
   any money table, can't update allocations, and triggers refuse changes to an amount, number or line item
 - Receipts print from the portal; PDF receipts, ID cards and certificates come with the documents branch
 
+### Documents, verification and reminders
+
+- **PDFs** are rendered by Gotenberg (headless Chromium in its own container, no internet needed): an A5 or
+  80 mm thermal **receipt**, a credit-card-size **student ID**, and an A4 landscape **certificate**, each with the
+  institution's letterhead and colour. Templates escape every value (a student's name can't inject markup or
+  make the renderer fetch a URL) and use inline SVG QR codes. A smoke test renders all five through a real
+  Gotenberg and checks each is exactly one page at the right size; Amharic text uses Noto Sans Ethiopic
+- **Certificates:** issued for a completed course that awards one; names are copied onto the certificate so it never
+  changes, serials come from the gapless counter, and issuing twice is impossible (unique index). An optional
+  policy withholds them until fees are paid in full. Revoking keeps the record; reissue = revoke, then issue again
+- **Public verification:** each certificate and ID card carries a random 256-bit token in its QR code. Anyone can
+  check it at `/api/v1/verify/<token>` (no sign-in) and sees only what's printed on the document, or that it was revoked.
+  Reissuing an ID card revokes the old one, so a lost card stops verifying
+- **Fee reminders:** an hourly worker job emails the payer (or the student) 3 days before an instalment is due, on the
+  day, and 3 and 7 days after, **once per stage** (a unique key makes that hold across workers), skipping paid
+  instalments and invoices made today. A missed run catches up within two days, never floods with old stages
+
 ### Authentication
 
 - Server-side sessions in an HttpOnly `__Host-` cookie (only a SHA-256 of the token is stored), with idle and absolute timeouts

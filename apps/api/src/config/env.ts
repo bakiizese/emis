@@ -57,6 +57,8 @@ export const envSchema = z
     /** Public URLs of the frontends: used in email links and as trusted origins. */
     PORTAL_URL: httpUrl.default('http://localhost:3001'),
     WEB_URL: httpUrl.default('http://localhost:3000'),
+    /** Gotenberg (HTML → PDF). Only the API and worker talk to it; it needs no internet. */
+    GOTENBERG_URL: httpUrl.default('http://localhost:3100'),
     /** Extra origins allowed to make state-changing requests (CSRF check). */
     TRUSTED_ORIGINS: commaSeparatedUrls,
 

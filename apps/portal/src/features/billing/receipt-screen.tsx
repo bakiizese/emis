@@ -29,7 +29,25 @@ export function ReceiptScreen({ paymentId }: { paymentId: string }) {
         >
           ← Back to the invoice
         </Link>
-        <Button onClick={() => window.print()}>Print</Button>
+        <div className="flex gap-2">
+          <a
+            href={`/api/v1/payments/${p.id}/receipt?format=a5`}
+            target="_blank"
+            rel="noreferrer"
+            className="bg-secondary text-secondary-foreground hover:bg-secondary/80 inline-flex h-10 items-center rounded-md px-4 text-sm font-medium"
+          >
+            PDF (A5)
+          </a>
+          <a
+            href={`/api/v1/payments/${p.id}/receipt?format=thermal`}
+            target="_blank"
+            rel="noreferrer"
+            className="bg-secondary text-secondary-foreground hover:bg-secondary/80 inline-flex h-10 items-center rounded-md px-4 text-sm font-medium"
+          >
+            Thermal (80 mm)
+          </a>
+          <Button onClick={() => window.print()}>Print this page</Button>
+        </div>
       </div>
 
       <article className="border-border relative space-y-6 rounded-xl border p-8 print:border-0 print:p-0">
