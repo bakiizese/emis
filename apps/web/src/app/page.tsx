@@ -4,17 +4,19 @@ import Link from 'next/link';
 import { ClassList } from '../components/class-list';
 import { JsonLd } from '../components/json-ld';
 import { LinkButton } from '../components/link-button';
-import { getCatalog, getContact, getProfile, getUpcoming, term } from '../lib/api';
+import { getCatalog, getContact, getPosts, getProfile, getUpcoming, term } from '../lib/api';
+import { formatInstant, postKindLabel } from '../lib/format';
 import { siteUrl } from '../lib/site';
 
 export const metadata: Metadata = { alternates: { canonical: '/' } };
 
 export default async function Home() {
   const profile = await getProfile();
-  const [catalog, upcoming, contact] = await Promise.all([
+  const [catalog, upcoming, contact, news] = await Promise.all([
     getCatalog().catch(() => ({ departments: [] })),
     getUpcoming(6).catch(() => []),
     getContact().catch(() => null),
+    profile.modules.news ? getPosts({ limit: 3 }).catch(() => null) : null,
   ]);
   const canRegister = profile.modules.pre_registration;
   const courseWord = term(profile, 'course', true);
@@ -98,6 +100,34 @@ export default async function Home() {
           <div className="mt-6">
             <ClassList classes={upcoming} showCourse canRegister={canRegister} />
           </div>
+        </section>
+      ) : null}
+
+      {news && news.items.length > 0 ? (
+        <section className="mx-auto max-w-6xl px-4 pt-14">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 className="text-2xl font-semibold tracking-tight">Latest news</h2>
+            <Link href="/news" className="text-primary text-sm hover:underline">
+              All news
+            </Link>
+          </div>
+          <ul className="mt-6 grid gap-4 sm:grid-cols-3">
+            {news.items.map((post) => (
+              <li key={post.slug} className="border-border bg-background rounded-xl border p-5">
+                <p className="text-muted-foreground text-xs">
+                  {postKindLabel(post.kind)} · {formatInstant(post.publishedAt, profile.timezone)}
+                </p>
+                <h3 className="mt-2 font-semibold">
+                  <Link href={`/news/${post.slug}`} className="hover:underline">
+                    {post.title}
+                  </Link>
+                </h3>
+                {post.summary ? (
+                  <p className="text-muted-foreground mt-1 line-clamp-3 text-sm">{post.summary}</p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
 

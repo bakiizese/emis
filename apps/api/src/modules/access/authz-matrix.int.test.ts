@@ -239,6 +239,13 @@ const ENDPOINTS: {
   { permission: 'students.read', method: 'GET', url: `/students/${MISSING_ID}/id-card` },
   { permission: 'students.read', method: 'GET', url: `/students/${MISSING_ID}/id-card/pdf` },
   { permission: 'students.manage', method: 'POST', url: `/students/${MISSING_ID}/id-card` },
+  { permission: 'posts.read', method: 'GET', url: '/posts' },
+  { permission: 'posts.read', method: 'GET', url: `/posts/${MISSING_ID}` },
+  { permission: 'posts.manage', method: 'POST', url: '/posts', payload: {} },
+  { permission: 'posts.manage', method: 'PATCH', url: `/posts/${MISSING_ID}`, payload: {} },
+  { permission: 'posts.manage', method: 'DELETE', url: `/posts/${MISSING_ID}` },
+  { permission: 'posts.publish', method: 'POST', url: `/posts/${MISSING_ID}/publish`, payload: {} },
+  { permission: 'posts.publish', method: 'POST', url: `/posts/${MISSING_ID}/unpublish` },
 ];
 
 let app: NestFastifyApplication;

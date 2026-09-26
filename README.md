@@ -159,6 +159,19 @@ Nothing about an institution is hard-coded. An admin configures it from the port
 - In production the site and API share one domain (Caddy sends `/api` to the API); in development the site proxies
   `/api` to `API_INTERNAL_URL`
 
+### News and announcements
+
+- **Posts** (announcement, news or story) are plain text, written in the portal under **News**. A post's state is just its
+  publish time: none is a draft, a future time is scheduled, a past one is live. So scheduling needs no background
+  job, and a scheduled post appears on the website at that moment by itself
+- **Who does what:** Coordinators (and Admins) write drafts; only someone with the publish permission (Admins) publishes,
+  schedules, unpublishes or deletes, and only they can edit or delete a post that is live or scheduled
+- On the website: a news page with filters and paging, a page per post, a "latest news" strip on the home page, an RSS
+  feed (`/feed.xml`) and sitemap entries. Text is escaped everywhere, so markup typed into a post shows as text
+- Post addresses are made from the title (titles with no Latin letters get a numbered fallback), stay fixed when the title
+  is edited, and stay unique when several posts are created at once. Audit entries name the post's address, never its text
+- Switched off with the News module: the portal screen and every public route disappear
+
 ### Authentication
 
 - Server-side sessions in an HttpOnly `__Host-` cookie (only a SHA-256 of the token is stored), with idle and absolute timeouts

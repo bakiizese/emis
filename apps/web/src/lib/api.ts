@@ -4,11 +4,15 @@ import {
   type PublicClass,
   type PublicContact,
   type PublicCourseDetail,
+  type PublicPost,
+  type PublicPostListResponse,
   type PublicProfile,
   publicCatalogResponseSchema,
   publicClassListResponseSchema,
   publicContactSchema,
   publicCourseDetailSchema,
+  publicPostListResponseSchema,
+  publicPostSchema,
   publicProfileSchema,
   type TermKey,
   verificationSchema,
@@ -58,6 +62,21 @@ export const getUpcoming = async (limit = 6): Promise<PublicClass[]> =>
   (await read(`/public/classes?limit=${limit}`, publicClassListResponseSchema, 30_000)).items;
 export const getContact = (): Promise<PublicContact> =>
   read('/public/contact', publicContactSchema, 5 * MINUTE);
+
+export const getPosts = (
+  options: { limit?: number; cursor?: string; kind?: string } = {},
+): Promise<PublicPostListResponse> => {
+  const query = new URLSearchParams({ limit: String(options.limit ?? 12) });
+  if (options.cursor) query.set('cursor', options.cursor);
+  if (options.kind) query.set('kind', options.kind);
+  return read(`/public/posts?${query.toString()}`, publicPostListResponseSchema, 30_000);
+};
+
+const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export const getPost = (slug: string): Promise<PublicPost> =>
+  SLUG.test(slug) && slug.length <= 80
+    ? read(`/public/posts/${slug}`, publicPostSchema, 30_000)
+    : Promise.reject(new NotFoundError());
 
 /** Never cached: a certificate can be revoked at any moment and the answer must be current. */
 export const getVerification = (token: string): Promise<Verification> =>

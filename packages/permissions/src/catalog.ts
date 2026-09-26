@@ -35,6 +35,9 @@ export const PERMISSIONS = {
   'certificates.read': 'See and print certificates',
   'certificates.issue': 'Issue certificates to students who completed a course',
   'certificates.revoke': 'Revoke a certificate so it no longer verifies',
+  'posts.read': 'See news and announcements, including drafts',
+  'posts.manage': 'Write and edit drafts of news and announcements',
+  'posts.publish': 'Publish, schedule, unpublish and delete news, and edit what is already live',
 } as const satisfies Record<string, string>;
 
 export type Permission = keyof typeof PERMISSIONS;

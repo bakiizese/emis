@@ -1,5 +1,6 @@
 'use client';
 
+import type { ModuleKey } from '@emis/contracts';
 import type { Permission } from '@emis/permissions';
 import { Alert } from '@emis/ui/components/alert';
 import { Button } from '@emis/ui/components/button';
@@ -15,12 +16,13 @@ import { pathForNextStep } from '@/lib/redirects';
 
 import { useSession } from './use-session';
 
-const NAV: { href: string; label: string; permission?: Permission }[] = [
+const NAV: { href: string; label: string; permission?: Permission; module?: ModuleKey }[] = [
   { href: '/', label: 'Home' },
   { href: '/students', label: 'Students', permission: 'students.read' },
   { href: '/admissions', label: 'Admissions', permission: 'admissions.read' },
   { href: '/cohorts', label: 'Classes', permission: 'cohorts.read' },
   { href: '/billing', label: 'Billing', permission: 'billing.read' },
+  { href: '/posts', label: 'News', permission: 'posts.read', module: 'news' },
   { href: '/academics', label: 'Academics', permission: 'catalog.read' },
   { href: '/users', label: 'Staff', permission: 'users.read' },
   { href: '/settings', label: 'Settings', permission: 'settings.manage' },
@@ -35,7 +37,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const queryClient = useQueryClient();
   const { me, error, loading, can } = useSession();
-  const { profile } = useInstitution();
+  const { profile, moduleOn } = useInstitution();
   const needsSetup = profile?.setupCompleted === false;
   const canSetUp = can('settings.manage');
 
@@ -68,7 +70,11 @@ export function StaffShell({ children }: { children: ReactNode }) {
             {profile?.shortName ?? 'EMIS'}
           </Link>
           <nav className="flex gap-1 text-sm" aria-label="Main">
-            {NAV.filter((item) => !item.permission || can(item.permission)).map((item) => (
+            {NAV.filter(
+              (item) =>
+                (!item.permission || can(item.permission)) &&
+                (!item.module || moduleOn(item.module)),
+            ).map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
