@@ -39,6 +39,7 @@ export const PERMISSIONS = {
   'posts.manage': 'Write and edit drafts of news and announcements',
   'posts.publish': 'Publish, schedule, unpublish and delete news, and edit what is already live',
   'reports.finance': 'See revenue and outstanding-balance reports and export them as CSV',
+  'students.import': 'Add many students at once from a CSV file',
 } as const satisfies Record<string, string>;
 
 export type Permission = keyof typeof PERMISSIONS;
