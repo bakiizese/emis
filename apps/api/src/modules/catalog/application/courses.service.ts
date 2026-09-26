@@ -74,6 +74,17 @@ export class CoursesService {
     return rows.map((row) => toCourse(row, prerequisites.get(row.id) ?? []));
   }
 
+  /** Active courses in the given programs, in teaching order (what the public catalog shows). */
+  async listActiveIn(programIds: string[]): Promise<Course[]> {
+    if (programIds.length === 0) return [];
+    const rows = await this.db
+      .select()
+      .from(courses)
+      .where(and(inArray(courses.programId, programIds), eq(courses.isActive, true)))
+      .orderBy(asc(courses.levelOrder), asc(courses.sortOrder), asc(courses.name));
+    return rows.map((row) => toCourse(row, []));
+  }
+
   private async row(id: string): Promise<CourseRow> {
     const [row] = await this.db.select().from(courses).where(eq(courses.id, id));
     if (!row) throw catalogErrors.courseNotFound();

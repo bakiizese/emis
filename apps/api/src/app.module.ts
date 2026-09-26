@@ -17,6 +17,7 @@ import { BillingModule } from './modules/billing/index.js';
 import { CatalogModule } from './modules/catalog/index.js';
 import { CohortsModule } from './modules/cohorts/index.js';
 import { DocumentsModule } from './modules/documents/index.js';
+import { PublicModule } from './modules/public/index.js';
 import { AuthGuard, IdentityModule } from './modules/identity/index.js';
 import { ModuleGuard, SettingsModule } from './modules/settings/index.js';
 import { StudentsModule } from './modules/students/index.js';
@@ -47,6 +48,7 @@ export class AppModule {
         CohortsModule,
         BillingModule,
         DocumentsModule,
+        PublicModule,
         AccessModule,
       ],
       providers: [
