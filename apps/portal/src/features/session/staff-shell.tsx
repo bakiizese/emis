@@ -22,6 +22,7 @@ const NAV: { href: string; label: string; permission?: Permission; module?: Modu
   { href: '/admissions', label: 'Admissions', permission: 'admissions.read' },
   { href: '/cohorts', label: 'Classes', permission: 'cohorts.read' },
   { href: '/billing', label: 'Billing', permission: 'billing.read' },
+  { href: '/reports', label: 'Reports', permission: 'reports.finance' },
   { href: '/posts', label: 'News', permission: 'posts.read', module: 'news' },
   { href: '/academics', label: 'Academics', permission: 'catalog.read' },
   { href: '/users', label: 'Staff', permission: 'users.read' },

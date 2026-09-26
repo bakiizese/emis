@@ -14,6 +14,7 @@ export * from './pagination.js';
 export * from './posts.js';
 export * from './phone.js';
 export * from './problem.js';
+export * from './reports.js';
 export * from './public.js';
 export * from './settings.js';
 export * from './students.js';
