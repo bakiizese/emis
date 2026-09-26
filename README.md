@@ -122,6 +122,22 @@ Nothing about an institution is hard-coded. An admin configures it from the port
   any money table, can't update allocations, and triggers refuse changes to an amount, number or line item
 - Receipts print from the portal; PDF receipts, ID cards and certificates come with the documents branch
 
+### Finance reports
+
+- **Revenue:** payments received in a date range (the month so far unless you pick one), grouped by day, month, branch,
+  department, program or payment method, and filterable by any of them. Days and months are counted in the institution's
+  time zone, so a payment at 00:30 local time on the 1st lands on the 1st. A payment that was later **voided** is left out of
+  the totals and shown separately so the numbers can be reconciled
+- **Outstanding balances:** every unpaid instalment on an invoice that isn't void, aged as of any day: not yet due,
+  1-30, 31-60, 61-90 and over 90 days overdue, with the list of instalments behind each bucket
+- Figures are computed by the database from the same rows the invoices use (a test checks the revenue total equals the
+  sum the invoices say was paid), never from separate tallies that could drift
+- **CSV export** for both reports (UTF-8 with a byte-order mark so Excel reads Amharic names; money as plain decimals;
+  names that start with `=`, `+`, `-` or `@` are defused so a spreadsheet can't run them as formulas). Each export is
+  written to the audit log with its filters and row count, never the rows
+- Only the new `reports.finance` permission (Admin) opens them, and a grant limited to one branch or department only
+  ever sees that branch's or department's money, even if the caller asks for another
+
 ### Documents, verification and reminders
 
 - **PDFs** are rendered by Gotenberg (headless Chromium in its own container, no internet needed): an A5 or
